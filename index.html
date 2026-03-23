@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#222222">
+    <link rel="manifest" href="manifest.json">
+    <title>3D 立體中國象棋</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <div id="ui-layer">
+        <div id="main-menu" class="panel">
+            <h1>3D 立體中國象棋</h1>
+            <button id="btn-pvp">玩家對戰玩家</button>
+            <button id="btn-pvai">玩家對戰 AI</button>
+        </div>
+        
+        <div id="ai-menu" class="panel hidden">
+            <h2>選擇 AI 難度</h2>
+            <button id="btn-ai-easy">初級 (隨機/淺層)</button>
+            <button id="btn-ai-medium">中級</button>
+            <button id="btn-ai-hard">高級</button>
+            <button id="btn-back-menu">返回</button>
+        </div>
+        
+        <div id="game-info" class="panel hidden">
+            <h2>遊戲進行中</h2>
+            <div id="turn-indicator">現在輪到: <span id="current-player" class="red">紅方</span></div>
+            <div id="game-status"></div>
+            <button id="btn-restart">重新開始</button>
+        </div>
+
+        <div id="game-over-menu" class="panel hidden">
+            <h2 id="winner-text"></h2>
+            <button id="btn-back-to-main">返回主選單</button>
+        </div>
+    </div>
+
+    <!-- 載入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- 遊戲邏輯與渲染 -->
+    <script src="js/gameLogic.js"></script>
+    <script src="js/pieces.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
