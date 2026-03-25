@@ -32,7 +32,8 @@ class ChessRenderer {
         this.animatingPieces = []; // { mesh, targetPos, startTime, duration }
         
         window.addEventListener('resize', this.onWindowResize.bind(this), false);
-        this.container.addEventListener('click', this.onMouseClick.bind(this), false);
+        // 支援滑鼠與觸控點擊
+        this.container.addEventListener('pointerdown', this.onMouseClick.bind(this), false);
     }
     
     initScene(initialBoardState) {
