@@ -16,6 +16,7 @@
             <h1>3D 立體中國象棋</h1>
             <button id="btn-pvp">玩家對戰玩家</button>
             <button id="btn-pvai">玩家對戰 AI</button>
+            <button id="btn-install" class="hidden" style="background-color: #28a745; margin-top: 20px;">安裝 APP</button>
         </div>
         
         <div id="ai-menu" class="panel hidden">
@@ -51,6 +52,29 @@
     <script src="js/app.js"></script>
     
     <script>
+        let deferredPrompt;
+        const btnInstall = document.getElementById('btn-install');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (btnInstall) {
+                btnInstall.classList.remove('hidden');
+            }
+        });
+
+        if (btnInstall) {
+            btnInstall.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response: ${outcome}`);
+                    deferredPrompt = null;
+                    btnInstall.classList.add('hidden');
+                }
+            });
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
