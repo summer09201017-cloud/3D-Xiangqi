@@ -1101,7 +1101,8 @@ class BoardScene {
     }
 
     this.pointerDrag.moved = true;
-    this.rotateBoard(-deltaX * TWO_D_DRAG_ROTATE_SPEED);
+    const dragDirection = this.isMobileViewport() ? 1 : -1;
+    this.rotateBoard(dragDirection * deltaX * TWO_D_DRAG_ROTATE_SPEED);
   }
 
   endPointerDrag(pointerId) {
