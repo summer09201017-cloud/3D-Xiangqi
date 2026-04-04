@@ -36,6 +36,8 @@ const MOBILE_RENDER_TARGET = Object.freeze({
   width: 1440,
   height: 960,
 });
+const MOBILE_BREAKPOINT = 820;
+const MOBILE_2D_PIECE_SCALE = 1.22;
 
 const VIEW_MODES = Object.freeze({
   THREE_D: '3d',
@@ -375,6 +377,7 @@ class BoardScene {
     this.highlightMeshes = [];
     this.pieceRecords = new Map();
     this.boardRotation = 0;
+    this.isMobileLayout = this.isMobileViewport();
     this.viewportState = {
       width: 0,
       height: 0,
@@ -434,21 +437,31 @@ class BoardScene {
   }
 
   applyPerspectiveView() {
-    this.perspectiveCamera.position.set(0, 36.2, 11.3);
-    this.controls.minDistance = 18.4;
-    this.controls.maxDistance = 29.6;
-    this.controls.minPolarAngle = Math.PI * 0.06;
-    this.controls.maxPolarAngle = Math.PI * 0.19;
-    this.controls.target.set(0, 0.46, 0.08);
+    if (this.isMobileViewport()) {
+      this.perspectiveCamera.position.set(0, 58.4, 14.2);
+      this.controls.minDistance = 28;
+      this.controls.maxDistance = 64;
+      this.controls.minPolarAngle = Math.PI * 0.03;
+      this.controls.maxPolarAngle = Math.PI * 0.16;
+      this.controls.target.set(0, 0.44, 0.08);
+    } else {
+      this.perspectiveCamera.position.set(0, 36.2, 11.3);
+      this.controls.minDistance = 18.4;
+      this.controls.maxDistance = 29.6;
+      this.controls.minPolarAngle = Math.PI * 0.06;
+      this.controls.maxPolarAngle = Math.PI * 0.19;
+      this.controls.target.set(0, 0.46, 0.08);
+    }
     this.controls.enabled = true;
     this.controls.update();
   }
 
   updateOrthographicFrustum(width, height) {
     const aspect = Math.max(width / height, 0.1);
-    let halfHeight = this.boardHeight * 0.59;
+    const isMobile = this.isMobileViewport();
+    let halfHeight = this.boardHeight * (isMobile ? 0.53 : 0.59);
     let halfWidth = halfHeight * aspect;
-    const requiredHalfWidth = this.boardWidth * 0.56;
+    const requiredHalfWidth = this.boardWidth * (isMobile ? 0.5 : 0.56);
 
     if (halfWidth < requiredHalfWidth) {
       halfWidth = requiredHalfWidth;
@@ -494,11 +507,13 @@ class BoardScene {
     if (viewMode === VIEW_MODES.TWO_D) {
       this.activeCamera = this.orthographicCamera;
       this.applyOrthographicView();
+      this.applyPieceScaleForView();
       return;
     }
 
     this.activeCamera = this.perspectiveCamera;
     this.applyPerspectiveView();
+    this.applyPieceScaleForView();
   }
 
   createEnvironment() {
@@ -688,14 +703,14 @@ class BoardScene {
   }
 
   getTargetRenderSize() {
-    return window.innerWidth <= 820 ? MOBILE_RENDER_TARGET : DESKTOP_RENDER_TARGET;
+    return this.isMobileViewport() ? MOBILE_RENDER_TARGET : DESKTOP_RENDER_TARGET;
   }
 
   getPixelRatio(width, height) {
     const target = this.getTargetRenderSize();
     const requestedScale = Math.max(target.width / width, target.height / height, 1);
     const basePixelRatio = window.devicePixelRatio || 1;
-    const maxPixelRatio = window.innerWidth <= 820 ? 2.2 : 3;
+    const maxPixelRatio = this.isMobileViewport() ? 2.2 : 3;
     return Math.min(maxPixelRatio, Math.max(basePixelRatio, requestedScale));
   }
 
@@ -703,9 +718,12 @@ class BoardScene {
     const width = Math.max(1, Math.floor(this.canvas.clientWidth));
     const height = Math.max(1, Math.floor(this.canvas.clientHeight));
     const pixelRatio = this.getPixelRatio(width, height);
+    const mobileLayout = this.isMobileViewport();
+    const mobileLayoutChanged = mobileLayout !== this.isMobileLayout;
 
     if (
       !force &&
+      !mobileLayoutChanged &&
       width === this.viewportState.width &&
       height === this.viewportState.height &&
       Math.abs(pixelRatio - this.viewportState.pixelRatio) < 0.01
@@ -713,12 +731,40 @@ class BoardScene {
       return;
     }
 
+    this.isMobileLayout = mobileLayout;
     this.viewportState = { width, height, pixelRatio };
     this.perspectiveCamera.aspect = width / height;
     this.perspectiveCamera.updateProjectionMatrix();
     this.updateOrthographicFrustum(width, height);
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
+
+    if (force || mobileLayoutChanged) {
+      if (this.currentViewMode === VIEW_MODES.TWO_D) {
+        this.applyOrthographicView();
+      } else {
+        this.applyPerspectiveView();
+      }
+      this.applyPieceScaleForView();
+    }
+  }
+
+  isMobileViewport() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  getPieceScaleForView() {
+    if (this.currentViewMode === VIEW_MODES.TWO_D && this.isMobileViewport()) {
+      return MOBILE_2D_PIECE_SCALE;
+    }
+    return 1;
+  }
+
+  applyPieceScaleForView() {
+    const pieceScale = this.getPieceScaleForView();
+    for (const record of this.pieceRecords.values()) {
+      record.group.scale.setScalar(pieceScale);
+    }
   }
 
   getLabelTexture(side, type) {
@@ -748,6 +794,7 @@ class BoardScene {
 
   createPieceRecord(piece) {
     const group = new THREE.Group();
+    group.scale.setScalar(this.getPieceScaleForView());
     group.userData = {
       kind: 'piece',
       row: 0,
