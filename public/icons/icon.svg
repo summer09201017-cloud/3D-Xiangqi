@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#2b1710" />
+      <stop offset="100%" stop-color="#6e2a1e" />
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#f2ddc3" />
+      <stop offset="100%" stop-color="#ceb086" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <rect x="92" y="72" width="328" height="368" rx="44" fill="#cfa97e" opacity="0.18" />
+  <g fill="none" stroke="#dfc199" stroke-linecap="round" stroke-width="16">
+    <path d="M116 132h280" />
+    <path d="M116 196h280" />
+    <path d="M116 316h280" />
+    <path d="M116 380h280" />
+    <path d="M132 116v120" />
+    <path d="M380 116v120" />
+    <path d="M132 276v120" />
+    <path d="M380 276v120" />
+    <path d="M194 116v120" />
+    <path d="M256 116v120" />
+    <path d="M318 116v120" />
+    <path d="M194 276v120" />
+    <path d="M256 276v120" />
+    <path d="M318 276v120" />
+    <path d="M194 116l124 124" />
+    <path d="M318 116l-124 124" />
+    <path d="M194 276l124 124" />
+    <path d="M318 276l-124 124" />
+  </g>
+  <circle cx="256" cy="256" r="98" fill="url(#ring)" />
+  <circle cx="256" cy="256" r="82" fill="#f7ead4" stroke="#8d2e20" stroke-width="12" />
+  <text
+    x="256"
+    y="290"
+    fill="#8d2e20"
+    font-family="KaiTi, STKaiti, serif"
+    font-size="118"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    帥
+  </text>
+</svg>

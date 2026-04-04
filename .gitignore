@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.npm-cache/
+.netlify/
+*.log
+*.out.log
+*.err.log
+coverage/
+.DS_Store
+Thumbs.db

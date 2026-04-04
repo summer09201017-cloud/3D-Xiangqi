@@ -1,0 +1,28 @@
+{
+  "name": "3D 象棋對局場",
+  "short_name": "3D象棋",
+  "description": "可在手機與 PC 上玩的 3D 中國象棋，支援主畫面安裝與 AI 強度切換。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#120b08",
+  "theme_color": "#9a3f2a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
