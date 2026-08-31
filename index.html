@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#222222">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="img/icon-192.png">
+    <link rel="apple-touch-icon" href="img/icon-192.png">
     <title>3D 立體中國象棋</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -16,7 +18,31 @@
             <h1>3D 立體中國象棋</h1>
             <button id="btn-pvp">玩家對戰玩家</button>
             <button id="btn-pvai">玩家對戰 AI</button>
+            <button id="btn-daily" style="background-color: #b8860b;">📅 每日殘局(江湖殘局風)</button>
             <button id="btn-install" style="background-color: #28a745; margin-top: 20px;">安裝 APP</button>
+            <p id="inAppHint" class="hidden" style="font-size: 13px; color: #ffd54f; max-width: 320px; margin: 10px auto 0; line-height: 1.6;"></p>
+            <script>
+            // 📱 內建瀏覽器偵測(守門 #30):教會連結走 LINE 發,LINE 的 WebView 裝不了 APP、
+            // beforeinstallprompt 永遠不觸發——開場就講「換瀏覽器」,別讓人按一顆沒反應的鈕。
+            (function () {
+              const ua = navigator.userAgent || '';
+              const hit = (/\bLine\//i.test(ua) || /\bLIFF\b/i.test(ua)) ? { n: 'LINE', m: '右上角「⋯」→「用其他瀏覽器開啟」' }
+                : (/FBAN|FBAV|FB_IAB|FB4A/i.test(ua)) ? { n: 'Facebook', m: '右上角「⋯」→「在外部瀏覽器中開啟」' }
+                : (/Instagram/i.test(ua)) ? { n: 'Instagram', m: '右上角「⋯」→「在瀏覽器中開啟」' }
+                : (/MicroMessenger/i.test(ua)) ? { n: '微信', m: '右上角「⋯」→「在瀏覽器中開啟」' }
+                : null;
+              if (!hit) return;   // 只提醒不擋(LINE 偶爾拿得到,擋掉會誤傷)
+              const el = document.getElementById('inAppHint');
+              el.textContent = '你正用 ' + hit.n + ' 內建瀏覽器開啟——要「安裝 APP」請先點' + hit.m + '。遊戲本身可以直接玩!';
+              el.classList.remove('hidden');
+              const btn = document.getElementById('btn-install');
+              if (btn) btn.style.display = 'none';
+            })();
+            </script>
+            <p id="verTag" style="font-size: 12px; opacity: .75; max-width: 340px; margin: 14px auto 0; line-height: 1.6;">
+              版本 v2(2026-08-31)・📅 新模式「每日殘局」:每天一題、<b>全世界同一題</b>(題目從日期算出來),
+              執紅先走、把黑將擒下就完成——比誰用最少步,成績記在這支裝置,明天換新題。16 題江湖殘局風題庫,
+              每一題都由高級 AI 實打驗證過解得動。<br>前幾版:v1 3D 象棋 PWA(對人/對 AI 三檔)</p>
         </div>
         
         <div id="ai-menu" class="panel hidden">
@@ -29,6 +55,7 @@
         
         <div id="game-info" class="panel hidden">
             <h2>遊戲進行中</h2>
+            <div id="daily-info" class="hidden" style="font-size: 13px; line-height: 1.6; margin-bottom: 6px; white-space: pre-line;"></div>
             <div id="turn-indicator">現在輪到: <span id="current-player" class="red">紅方</span></div>
             <div id="game-status"></div>
             <button id="btn-restart">重新開始</button>
@@ -36,6 +63,7 @@
 
         <div id="game-over-menu" class="panel hidden">
             <h2 id="winner-text"></h2>
+            <button id="btn-retry">再來一局</button>
             <button id="btn-back-to-main">返回主選單</button>
         </div>
     </div>
@@ -48,6 +76,7 @@
     <script src="js/gameLogic.js"></script>
     <script src="js/pieces.js"></script>
     <script src="js/ai.js"></script>
+    <script src="js/puzzles.js"></script>
     <script src="js/renderer.js"></script>
     <script src="js/app.js"></script>
     

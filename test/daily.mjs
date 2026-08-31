@@ -1,0 +1,146 @@
+/* 🔬 📅 每日殘局(江湖殘局風)驗算。
+   跑法:node test/daily.mjs   (只驗規則/AI/題庫,零 DOM 零 three.js)
+
+   釘五件:
+     ①題庫擺位合法:座標在盤內、不疊子、士象在自己的合法點、雙方都有王、
+       ★ 兩王不同列空檔照面(這個引擎的飛將=王可直接飛吃,照面=一步被秒)
+     ②決定性:同一天必同一題、UTC+8 換日線、未來 400 天都取得到題
+     ③★ 每一題機器驗「解得動」:紅 AI(高級)對黑 AI(高級)實打,
+       3 次嘗試至少 2 次在步數上限內贏——無解題不能靠人看
+     ④紅方先手就有合法走法(不會一開局就卡死)
+     ⑤黑方第一步不能直接吃掉紅帥(擺位不送頭)
+
+   ★ 這個 repo 的 js/ 是瀏覽器全域 class(不是 module)——用 new Function
+     把純邏輯三支+題庫串起來取回類別,不動產品程式。 */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const src = (p) => readFileSync(path.join(here, "..", p), "utf8");
+const factory = new Function(
+  [src("js/pieces.js"), src("js/gameLogic.js"), src("js/ai.js"), src("js/puzzles.js")].join("\n")
+  + "\nreturn { PiecesRules, GameLogic, ChessAI, DAILY_PUZZLES, dailyPuzzleKey, puzzleForDate, buildPuzzleBoard };",
+);
+const { PiecesRules, ChessAI, DAILY_PUZZLES, dailyPuzzleKey, puzzleForDate, buildPuzzleBoard } = factory();
+
+let pass = 0, fail = 0;
+const ok = (label, cond, note = "") => {
+  if (cond) { pass++; console.log("  🟢 " + label); }
+  else { fail++; console.log("  🔴 " + label + (note ? "  → " + String(note).slice(0, 240) : "")); }
+};
+const section = (s) => console.log("\n── " + s + " ──");
+
+/* ══ ① 擺位合法 ══ */
+section("① 題庫擺位合法(" + DAILY_PUZZLES.length + " 題逐題驗)");
+{
+  const advisorSpots = {
+    red: new Set(["0,3", "0,5", "1,4", "2,3", "2,5"]),
+    black: new Set(["9,3", "9,5", "8,4", "7,3", "7,5"]),
+  };
+  const elephantSpots = {
+    red: new Set(["0,2", "0,6", "2,0", "2,4", "2,8", "4,2", "4,6"]),
+    black: new Set(["9,2", "9,6", "7,0", "7,4", "7,8", "5,2", "5,6"]),
+  };
+  for (const p of DAILY_PUZZLES) {
+    const why = [];
+    const seen = new Set();
+    let redKing = null, blackKing = null;
+    for (const color of ["red", "black"]) {
+      for (const [type, r, c] of p[color]) {
+        if (r < 0 || r > 9 || c < 0 || c > 8) why.push(`${type} 出盤 (${r},${c})`);
+        const k = r + "," + c;
+        if (seen.has(k)) why.push(`疊子 (${r},${c})`);
+        seen.add(k);
+        if (type === "king") {
+          if (!PiecesRules.isInPalace(color, r, c)) why.push(`${color} 王不在九宮 (${r},${c})`);
+          if (color === "red") redKing = { r, c }; else blackKing = { r, c };
+        }
+        if (type === "advisor" && !advisorSpots[color].has(k)) why.push(`${color} 士位非法 (${r},${c})`);
+        if (type === "elephant" && !elephantSpots[color].has(k)) why.push(`${color} 象位非法 (${r},${c})`);
+        if (type === "pawn") {
+          const crossed = color === "red" ? r >= 5 : r <= 4;
+          if (!crossed && color === "red" && r < 3) why.push(`紅兵位太後 (${r},${c})`);
+        }
+      }
+    }
+    if (!redKing || !blackKing) why.push("缺王");
+    if (redKing && blackKing && redKing.c === blackKing.c) {
+      const board = buildPuzzleBoard(p);
+      if (PiecesRules.countPiecesBetween(board, redKing.r, redKing.c, blackKing.r, blackKing.c) === 0) {
+        why.push("★ 兩王同列空檔照面(開局就會被飛將秒)");
+      }
+    }
+    ok(`「${p.name}」擺位合法`, why.length === 0, why.join("/"));
+  }
+}
+
+/* ══ ② 決定性 ══ */
+section("② 決定性與換日線");
+{
+  const t = Date.UTC(2026, 7, 31, 15, 59);
+  ok("UTC 15:59 仍是台北 8/31", dailyPuzzleKey(t) === "2026-08-31", dailyPuzzleKey(t));
+  ok("UTC 16:00 換成台北 9/01", dailyPuzzleKey(t + 60000) === "2026-09-01");
+  const a = puzzleForDate("2026-08-31");
+  const b = puzzleForDate("2026-08-31");
+  ok("同一天必同一題", a.index === b.index && a.puzzle.id === b.puzzle.id);
+  let allOk = true;
+  const hit = new Set();
+  for (let i = 0; i < 400; i++) {
+    const r = puzzleForDate(dailyPuzzleKey(Date.UTC(2026, 7, 31) + i * 86400000));
+    if (!r.puzzle || !r.puzzle.red) allOk = false;
+    hit.add(r.index);
+  }
+  ok("未來 400 天每天都取得到題", allOk);
+  ok("題庫輪得開(400 天內每一題都出過場)", hit.size === DAILY_PUZZLES.length, `出過 ${hit.size}/${DAILY_PUZZLES.length}`);
+}
+
+/* ══ ③ 每題 AI 實打(解得動的機器證據)══ */
+section("③ 紅 AI(高級)實打每一題(3 試 ≥2 勝、單局 ≤120 步)");
+{
+  const ai = new ChessAI();
+  const origLog = console.log;
+  for (const p of DAILY_PUZZLES) {
+    let wins = 0;
+    const detail = [];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const board = buildPuzzleBoard(p);
+      let turn = "red";
+      let winner = null;
+      console.log = () => {};                     // AI 每步都 console.log,靜音
+      for (let ply = 0; ply < 120 && !winner; ply++) {
+        const move = ai.calculateBestMove(board, turn, "hard");
+        if (!move) { winner = turn === "red" ? "black" : "red"; break; }   // 無步可走=困斃
+        const captured = board[move.to.row][move.to.col];
+        board[move.to.row][move.to.col] = board[move.from.row][move.from.col];
+        board[move.from.row][move.from.col] = null;
+        if (captured && captured.type === "king") { winner = turn; break; }
+        turn = turn === "red" ? "black" : "red";
+      }
+      console.log = origLog;
+      if (winner === "red") wins++;
+      detail.push(winner || "逾步");
+    }
+    ok(`「${p.name}」紅方解得動(3 試 ${wins} 勝)`, wins >= 2, detail.join(","));
+  }
+}
+
+/* ══ ④⑤ 開局理智 ══ */
+section("④⑤ 開局理智:紅有步可走、黑第一步吃不到紅帥");
+{
+  const ai = new ChessAI();
+  for (const p of DAILY_PUZZLES) {
+    const board = buildPuzzleBoard(p);
+    const redMoves = ai.getAllLegalMoves(board, "red");
+    ok(`「${p.name}」紅方開局有 ${redMoves.length} 步可走`, redMoves.length > 0);
+    const blackMoves = ai.getAllLegalMoves(board, "black");
+    const kill = blackMoves.find((m) => {
+      const t = board[m.to.row][m.to.col];
+      return t && t.type === "king" && t.color === "red";
+    });
+    ok(`「${p.name}」黑第一步吃不到紅帥(擺位不送頭)`, !kill, kill && JSON.stringify(kill));
+  }
+}
+
+console.log(`\n🔬 daily:${pass} 過 / ${fail} 失敗`);
+process.exitCode = fail ? 1 : 0;

@@ -1,4 +1,5 @@
-const CACHE_NAME = '3d-xiangqi-v1';
+// ★ 任何檔案有改就 bump CACHE_NAME(這支 SW 是 cache-first,不 bump 舊使用者永遠拿舊版)
+const CACHE_NAME = '3d-xiangqi-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,6 +9,9 @@ const ASSETS_TO_CACHE = [
   './js/gameLogic.js',
   './js/pieces.js',
   './js/ai.js',
+  './js/puzzles.js',
+  './img/icon-192.png',
+  './img/icon-512.png',
   './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'

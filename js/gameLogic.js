@@ -9,14 +9,16 @@ class GameLogic {
         this.winner = null;
     }
 
-    initGame() {
-        this.board = Array(10).fill(null).map(() => Array(9).fill(null));
+    // customBoard(選填):📅 每日殘局用——直接給一張擺好的 10×9 棋盤(buildPuzzleBoard 產),
+    // 不給就照傳統開局擺。兩條路都是紅先。
+    initGame(customBoard = null) {
+        this.board = customBoard || Array(10).fill(null).map(() => Array(9).fill(null));
         this.currentPlayer = 'red';
         this.selectedPiece = null;
         this.isGameOver = false;
         this.winner = null;
 
-        this.setupInitialBoard();
+        if (!customBoard) this.setupInitialBoard();
     }
 
     setupInitialBoard() {
