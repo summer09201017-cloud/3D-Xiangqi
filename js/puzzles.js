@@ -84,12 +84,52 @@ function dailyPuzzleKey(now) {
   return new Date((now || Date.now()) + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-// FNV-1a:日期字串 → 題庫索引(決定性,不用 Math.random)
-function puzzleForDate(key) {
+// 每天出幾題(一組)。★ 5 題=一次坐下來解得完、又有「今天全解」的成就感(0831 使用者點名)。
+const DAILY_SET_SIZE = 5;
+
+// FNV-1a:日期字串 → 32 位種子(決定性,不用 Math.random)
+function dailySeed(key) {
   let h = 0x811c9dc5;
   for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  const idx = h % DAILY_PUZZLES.length;
-  return { key, index: idx, puzzle: DAILY_PUZZLES[idx] };
+  return h >>> 0;
+}
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 單題版(舊介面;=今天那一組的第一題) */
+function puzzleForDate(key) {
+  const set = puzzlesForDate(key, 1);
+  return { key, index: set.indexes[0], puzzle: set.puzzles[0] };
+}
+
+/* ★ 每日一組(0831 使用者點名「不要只有 1 題」):
+     決定性 Fisher-Yates 抽 count 題**不重複**,再依「紅方子力數」由少到多排
+     ⇒ 今天全世界同一組同一順序。★ 象棋沒有 mateIn(江湖殘局不標步數),
+     用「紅方棋子數」當難易近似:子少=手段少=通常更難?反過來——
+     子多要協調更複雜,但子少更吃精算 ⇒ 這裡取**子多先出**(手段多、好上手),
+     真正的難度排序留給題庫作者用 order 欄位覆寫(沒給就照這條)。 */
+function puzzlesForDate(key, count = DAILY_SET_SIZE) {
+  const n = Math.max(1, Math.min(count | 0 || 1, DAILY_PUZZLES.length));
+  const rng = mulberry32(dailySeed(key));
+  const pool = DAILY_PUZZLES.map((_, i) => i);
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const rank = (i) => {
+    const p = DAILY_PUZZLES[i];
+    return Number.isFinite(p.order) ? p.order : -p.red.length;   // 子多先出;order 可覆寫
+  };
+  const indexes = pool.slice(0, n).sort((a, b) => rank(a) - rank(b) || a - b);
+  return { key, indexes, puzzles: indexes.map((i) => DAILY_PUZZLES[i]) };
 }
 
 // 題目 → 10×9 棋盤(名字照紅黑習慣:相/象、仕/士、帥/將、兵/卒)

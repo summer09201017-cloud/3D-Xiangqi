@@ -20,9 +20,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const src = (p) => readFileSync(path.join(here, "..", p), "utf8");
 const factory = new Function(
   [src("js/pieces.js"), src("js/gameLogic.js"), src("js/ai.js"), src("js/puzzles.js")].join("\n")
-  + "\nreturn { PiecesRules, GameLogic, ChessAI, DAILY_PUZZLES, dailyPuzzleKey, puzzleForDate, buildPuzzleBoard };",
+  + "\nreturn { PiecesRules, GameLogic, ChessAI, DAILY_PUZZLES, DAILY_SET_SIZE, dailyPuzzleKey, puzzleForDate, puzzlesForDate, buildPuzzleBoard };",
 );
-const { PiecesRules, ChessAI, DAILY_PUZZLES, dailyPuzzleKey, puzzleForDate, buildPuzzleBoard } = factory();
+const { PiecesRules, ChessAI, DAILY_PUZZLES, DAILY_SET_SIZE, dailyPuzzleKey, puzzleForDate, puzzlesForDate, buildPuzzleBoard } = factory();
 
 let pass = 0, fail = 0;
 const ok = (label, cond, note = "") => {
@@ -93,6 +93,32 @@ section("② 決定性與換日線");
   }
   ok("未來 400 天每天都取得到題", allOk);
   ok("題庫輪得開(400 天內每一題都出過場)", hit.size === DAILY_PUZZLES.length, `出過 ${hit.size}/${DAILY_PUZZLES.length}`);
+}
+
+/* ══ ②b 每日一組多題(0831 使用者點名「不要只有 1 題」)══ */
+section("②b 每日一組:" + DAILY_SET_SIZE + " 題、決定性、不重複、有固定順序");
+{
+  const a = puzzlesForDate("2026-08-31");
+  const b = puzzlesForDate("2026-08-31");
+  ok("一組 " + DAILY_SET_SIZE + " 題", a.puzzles.length === DAILY_SET_SIZE, String(a.puzzles.length));
+  ok("★ 同一天同一組、同一順序(全世界一致)", JSON.stringify(a.indexes) === JSON.stringify(b.indexes), JSON.stringify(a.indexes));
+  ok("同一組內不重複", new Set(a.indexes).size === a.indexes.length);
+  const c = puzzlesForDate("2026-09-01");
+  ok("隔天換一組", JSON.stringify(a.indexes) !== JSON.stringify(c.indexes), JSON.stringify(c.indexes));
+  const big = puzzlesForDate("2026-08-31", DAILY_PUZZLES.length + 99);
+  ok("要求超過題庫時夾住且不重複", big.puzzles.length === DAILY_PUZZLES.length
+    && new Set(big.indexes).size === DAILY_PUZZLES.length, String(big.puzzles.length));
+  ok("舊介面 puzzleForDate = 這一組的第一題",
+    puzzleForDate("2026-08-31").puzzle.id === puzzlesForDate("2026-08-31", 1).puzzles[0].id);
+  const seen = new Set();
+  let allFull = true;
+  for (let i = 0; i < 400; i += 1) {
+    const s = puzzlesForDate(dailyPuzzleKey(Date.UTC(2026, 7, 31) + i * 86400000));
+    if (s.puzzles.length !== DAILY_SET_SIZE) allFull = false;
+    s.indexes.forEach((x) => seen.add(x));
+  }
+  ok("400 天每天都湊得出完整一組", allFull);
+  ok("400 天內題庫每一題都出過場", seen.size === DAILY_PUZZLES.length, `${seen.size}/${DAILY_PUZZLES.length}`);
 }
 
 /* ══ ③ 每題 AI 實打(解得動的機器證據)══ */

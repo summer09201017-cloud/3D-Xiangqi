@@ -25,7 +25,7 @@ await page.goto(URL + "/?v=" + Date.now(), { waitUntil: "networkidle" });
 await page.waitForTimeout(900);
 
 ok(await page.locator("#btn-daily").count() === 1, "主選單有「📅 每日殘局」鈕");
-ok((await page.locator("#verTag").textContent()).includes("每日殘局"), "verTag 帶版本簡歷");
+ok((await page.locator("#verTag").textContent()).includes("一組 5 題"), "verTag 講了一組 5 題");
 
 await page.evaluate(() => localStorage.removeItem("xiangqi-daily-v1"));
 await page.click("#btn-daily");
@@ -59,10 +59,12 @@ const end = await page.evaluate(async () => {
     store: localStorage.getItem("xiangqi-daily-v1") };
 });
 ok(end.winner === "red", "紅方打得贏今天的題(用了 " + end.redMoves + " 步)", JSON.stringify(end));
-ok(end.overlay && end.winText.includes("殘局完成"), "結算畫面開了、文字對", end.winText);
+ok(end.overlay && end.winText.includes("題完成") && end.winText.includes("今天已解"),
+  "結算畫面開了、帶今天進度", end.winText);
 ok(end.winText.includes("新紀錄"), "第一次打=顯示「新紀錄!」(閂鎖沒讓第二次觸發蓋掉)", end.winText);
 const rec = JSON.parse(end.store || "{}");
-ok(rec[st.key] === end.redMoves, "戰績記了今天最少步(" + JSON.stringify(rec) + ")");
+ok(Object.values((rec[st.key] || {}).solved || {})[0] === end.redMoves,
+  "★ 戰績每題分開記(" + JSON.stringify(rec) + ")");
 ok(errors.length === 0, "整場零 pageerror", errors.join(" | "));
 
 await browser.close();

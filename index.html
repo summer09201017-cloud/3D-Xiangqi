@@ -40,9 +40,9 @@
             })();
             </script>
             <p id="verTag" style="font-size: 12px; opacity: .75; max-width: 340px; margin: 14px auto 0; line-height: 1.6;">
-              版本 v2(2026-08-31)・📅 新模式「每日殘局」:每天一題、<b>全世界同一題</b>(題目從日期算出來),
-              執紅先走、把黑將擒下就完成——比誰用最少步,成績記在這支裝置,明天換新題。16 題江湖殘局風題庫,
-              每一題都由高級 AI 實打驗證過解得動。<br>前幾版:v1 3D 象棋 PWA(對人/對 AI 三檔)</p>
+              版本 v3(2026-08-31)・📅「每日殘局」升級成<b>每天一組 5 題</b>——全世界同一組、
+              執紅先走、解完一題按「下一題」接著解;16 題江湖殘局風題庫每一題都由高級 AI 實打驗證過解得動,
+              每題分開記最少步數,明天換新的一組。<br>前幾版:v2 每日殘局(單題)・v1 3D 象棋 PWA(對人/對 AI 三檔)</p>
         </div>
         
         <div id="ai-menu" class="panel hidden">
@@ -62,7 +62,10 @@
         </div>
 
         <div id="game-over-menu" class="panel hidden">
-            <h2 id="winner-text"></h2>
+            <h2 id="winner-text" style="white-space:pre-line"></h2>
+            <!-- 📅 每日模式才出現(結算框會蓋住上面的每日鈕) -->
+            <button id="btn-daily-next" class="hidden">📅 下一題</button>
+            <button id="btn-daily-retry" class="hidden">🔁 這題再來一次</button>
             <button id="btn-retry">再來一局</button>
             <button id="btn-back-to-main">返回主選單</button>
         </div>
