@@ -22,7 +22,7 @@ const factory = new Function(
   [src("js/pieces.js"), src("js/gameLogic.js"), src("js/ai.js"), src("js/puzzles.js")].join("\n")
   + "\nreturn { PiecesRules, GameLogic, ChessAI, DAILY_PUZZLES, DAILY_SET_SIZE, dailyPuzzleKey, puzzleForDate, puzzlesForDate, buildPuzzleBoard };",
 );
-const { PiecesRules, ChessAI, DAILY_PUZZLES, DAILY_SET_SIZE, dailyPuzzleKey, puzzleForDate, puzzlesForDate, buildPuzzleBoard } = factory();
+const { PiecesRules, GameLogic, ChessAI, DAILY_PUZZLES, DAILY_SET_SIZE, dailyPuzzleKey, puzzleForDate, puzzlesForDate, buildPuzzleBoard } = factory();
 
 let pass = 0, fail = 0;
 const ok = (label, cond, note = "") => {
@@ -165,6 +165,65 @@ section("④⑤ 開局理智:紅有步可走、黑第一步吃不到紅帥");
       return t && t.type === "king" && t.color === "red";
     });
     ok(`「${p.name}」黑第一步吃不到紅帥(擺位不送頭)`, !kill, kill && JSON.stringify(kill));
+  }
+}
+
+/* ══ ⑥ 💡 AI 提示:提示出來的那一手,玩家一定點得動 ══
+   app.js 的 showHint 借 ai.calculateBestMove 當提示,而 ai.js 的 getAllLegalMoves
+   自己註解就寫著「簡化版,不考慮將軍/被將軍」⇒ 它產出的走法**不保證**過得了
+   gameLogic.isValidMove(玩家點擊真正會走的那條路)。
+   一旦分岔,症狀是「提示叫我走這步,但棋子點不動」——遊戲看起來壞了,而使用者是對的。
+   ⇒ 這一段就是釘死那條分岔:每一題都真的跑一次紅方提示,逐手驗合法。
+   (showHint 本體需要 DOM+three,這裡驗的是它唯一會出錯的那個環節。) */
+section("⑥ 💡 AI 提示:每一題的建議手都通得過真正的規則");
+{
+  const ai = new ChessAI();
+  for (const p of DAILY_PUZZLES) {
+    const gl = new GameLogic();
+    gl.initGame(buildPuzzleBoard(p));
+    const mv = ai.calculateBestMove(gl.getBoardState(), "red", "hard");
+    ok(`「${p.name}」提示給得出一手`, !!mv);
+    if (!mv) continue;
+    const legal = gl.isValidMove(mv.from.row, mv.from.col, mv.to.row, mv.to.col);
+    ok(`「${p.name}」提示那一手玩家點得動`, legal,
+       `${JSON.stringify(mv.from)}→${JSON.stringify(mv.to)}`);
+    const piece = gl.getBoardState()[mv.from.row][mv.from.col];
+    ok(`「${p.name}」提示動的是紅方自己的棋`, !!piece && piece.color === "red");
+  }
+}
+
+/* ⑥b 快取鑰匙:同一個局面必須算出同一把鑰匙、換一顆子就要不同。
+   showHint 靠它做到「同局面按幾次都回同一手」(calculateBestMove 內部有洗牌,
+   不快取的話同分的兩手會輪流跳,看起來像跳針)。 */
+section("⑥b 💡 提示快取的鑰匙認得出局面");
+{
+  const keyOf = (gl) => {                      // 與 app.js hintKey() 同式
+    const b = gl.getBoardState();
+    let s = gl.currentPlayer + "|";
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) {
+      const q = b[r][c];
+      s += q ? q.color[0] + q.type + "," : ".";
+    }
+    return s;
+  };
+  const a = new GameLogic(); a.initGame(buildPuzzleBoard(DAILY_PUZZLES[0]));
+  const b = new GameLogic(); b.initGame(buildPuzzleBoard(DAILY_PUZZLES[0]));
+  ok("同一題兩份盤面 ⇒ 同一把鑰匙", keyOf(a) === keyOf(b));
+  const c = new GameLogic(); c.initGame(buildPuzzleBoard(DAILY_PUZZLES[1]));
+  ok("不同題 ⇒ 不同鑰匙", keyOf(a) !== keyOf(c));
+  // 走一步之後鑰匙一定要變(否則走完還吐上一手的提示)
+  const mv = new ChessAI().calculateBestMove(a.getBoardState(), "red", "easy");
+  if (mv) {
+    const before = keyOf(a);
+    a.executeMove(mv.from.row, mv.from.col, mv.to.row, mv.to.col);
+    ok("走一步之後鑰匙就變了", keyOf(a) !== before);
+  }
+  // king / knight 首字都是 k:鑰匙必須用完整 type,否則兩者混為一談
+  const hasKnight = DAILY_PUZZLES.some((p) => p.red.some((x) => x[0] === "knight"));
+  if (hasKnight) {
+    const kp = DAILY_PUZZLES.find((p) => p.red.some((x) => x[0] === "knight"));
+    const g = new GameLogic(); g.initGame(buildPuzzleBoard(kp));
+    ok("有馬的題目:鑰匙裡 king 與 knight 分得開", keyOf(g).includes("knight,") && keyOf(g).includes("king,"));
   }
 }
 

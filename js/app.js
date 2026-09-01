@@ -36,6 +36,9 @@ class App {
         });
         
         document.getElementById('btn-restart').addEventListener('click', () => this.startGame(this.gameMode, this.aiDifficulty));
+        // 💡 AI 提示:借同一支引擎,從「玩家這一邊」算一手
+        const btnHint = document.getElementById('btn-hint');
+        if (btnHint) btnHint.addEventListener('click', () => this.showHint());
         document.getElementById('btn-back-to-main').addEventListener('click', () => this.showMainMenu());
         // 📅 每日殘局:每天一題、全世界同一題(題目從日期算,零後端)
         const btnDaily = document.getElementById('btn-daily');
@@ -197,7 +200,82 @@ class App {
             }
         }, 100);
     }
-    
+
+    /* 💡 AI 提示(2026-09-01 全艦隊棋類批次)
+       借的是**同一支** this.ai,不另寫一套搜尋 —— 提示與對手同源,說出來的話才算數
+       (另寫一份的話,兩邊分岔的那天不會有任何測試變紅)。同 shot-success-odds
+       「借判定同一支 simulate」的作法。
+       三條規矩:
+        ① 給出去之前先過 gameLogic.isValidMove —— ai.js 的 getAllLegalMoves 自己的註解
+           就寫著「簡化版,不考慮將軍/被將軍」⇒ 不驗的話會提示一手玩家**點不動**的棋,
+           那比沒有提示更糟(他會以為遊戲壞了,而他是對的)。
+        ② 同一個局面按幾次都要回同一手:calculateBestMove 裡有 moves.sort(() => random)
+           ⇒ 同分的兩手會輪流跳,看起來像跳針。快取的鑰匙**認位置、不排序**。
+        ③ 文案分三態、不可混講:有建議 / 沒有合法著法 / 算的時候出事。 */
+    showHint() {
+        if (this.gameLogic.isGameOver) return;
+        // 輪到 AI 的時候不給提示(那是它在想,不是玩家在想)
+        if ((this.gameMode === 'pvai' || this.gameMode === 'daily')
+            && this.gameLogic.currentPlayer === 'black') return;
+        if (this._hintBusy) return;
+
+        const statusEl = document.getElementById('game-status');
+        const me = this.gameLogic.currentPlayer;
+        const key = this.hintKey();
+
+        if (this._hintCache && this._hintCache.key === key) {   // ②
+            this.paintHint(this._hintCache.move, statusEl);
+            return;
+        }
+
+        this._hintBusy = true;
+        statusEl.innerText = '💡 想一手…';
+        /* 先讓瀏覽器把「想一手…」畫出來再進搜尋:深度 3 是同步的,
+           不讓出一幀的話畫面會整個凍住,看起來像當掉。 */
+        setTimeout(() => {
+            let move = null;
+            try {
+                move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), me, 'hard');
+                if (move && !this.gameLogic.isValidMove(          // ①
+                    move.from.row, move.from.col, move.to.row, move.to.col)) move = null;
+            } catch (e) {
+                console.error('[hint] calculateBestMove threw:', e);
+                this._hintBusy = false;
+                statusEl.innerText = '💡 這一手算不出來,先自己走走看';   // ③ 出事
+                return;
+            }
+            this._hintBusy = false;
+            if (!move) { statusEl.innerText = '💡 找不到可走的棋了'; return; }   // ③ 無步
+            this._hintCache = { key, move };
+            this.paintHint(move, statusEl);                                      // ③ 有建議
+        }, 30);
+    }
+
+    /* 把提示畫到盤上:綠圈=要動的那顆、綠點=要去的地方。
+       文字只講「哪一顆」,不自創座標記法 —— 這站其他地方都沒有記法,
+       發明一套只是多一個要學的東西,而綠圈綠點已經指得很清楚了。 */
+    paintHint(move, statusEl) {
+        const board = this.gameLogic.getBoardState();
+        const piece = board[move.from.row][move.from.col];
+        const eat = board[move.to.row][move.to.col];
+        this.renderer.highlightSquare(move.from.row, move.from.col);   // 內含 clearHighlights
+        this.renderer.highlightMoves([{ row: move.to.row, col: move.to.col }]);
+        statusEl.innerText = `💡 建議走「${piece ? piece.name : '這顆'}」`
+            + (eat ? `,吃掉對方的「${eat.name}」` : '')
+            + '(綠圈是它,綠點是要去的地方)';
+    }
+
+    /* 提示快取的鑰匙 = 盤面 + 輪到誰。用完整 type:'king'/'knight' 取首字都是 k 會撞。 */
+    hintKey() {
+        const b = this.gameLogic.getBoardState();
+        let s = this.gameLogic.currentPlayer + '|';
+        for (let r = 0; r < 10; r++) for (let c = 0; c < 9; c++) {
+            const p = b[r][c];
+            s += p ? p.color[0] + p.type + ',' : '.';
+        }
+        return s;
+    }
+
     checkGameState() {
         if (this.gameLogic.isGameOver) {
             /* 📅 每日殘局的收場:贏=記步數(當日取最少)+新紀錄;輸=溫柔的「再試一次」

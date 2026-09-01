@@ -40,6 +40,29 @@ ok(st.mode === "daily" && st.diff === "hard", "進每日模式,黑方=高級 AI"
 ok(/^\d{4}-\d{2}-\d{2}$/.test(st.key), "日期鍵格式正確(" + st.key + " 「" + st.name + "」)");
 ok(st.info.includes(st.key) && st.info.includes("0 步"), "狀態行帶日期與步數");
 
+/* 💡 提示鈕:真的用滑鼠按(不是 evaluate 裡呼叫 showHint)——
+   evaluate-not-click-guard 存在的理由就是這個:繞過真點擊的話,
+   「鈕被別的東西蓋住、按不到」這種病照樣全綠。 */
+ok(await page.locator("#btn-hint").count() === 1, "遊戲畫面有「💡 提示」鈕");
+await page.click("#btn-hint");
+await page.waitForTimeout(500);
+const h1 = await page.evaluate(() => ({
+  status: document.getElementById("game-status").innerText,
+  marks: window.app.renderer.highlightMeshes.length,
+  move: JSON.stringify(window.app._hintCache && window.app._hintCache.move),
+}));
+ok(h1.status.includes("建議走"), "按下去有給一手建議", h1.status);
+ok(h1.marks >= 2, "盤上畫了綠圈(要動的棋)+ 綠點(要去的地方)= " + h1.marks + " 個標記");
+ok(await page.evaluate(() => {                    // 建議的那一手必須真的合法
+  const m = window.app._hintCache.move;
+  return window.app.gameLogic.isValidMove(m.from.row, m.from.col, m.to.row, m.to.col);
+}), "建議的那一手通得過真正的規則(玩家點得動)");
+
+await page.click("#btn-hint");                    // ② 同局面再按一次
+await page.waitForTimeout(400);
+const h2 = await page.evaluate(() => JSON.stringify(window.app._hintCache.move));
+ok(h2 === h1.move, "同一個局面按兩次 ⇒ 同一手(不跳針)", h1.move + " vs " + h2);
+
 // 紅方照 AI 建議走(與真手指同一條 handleSquareClick 管線),黑方由遊戲自己回
 const end = await page.evaluate(async () => {
   const a = window.app;
