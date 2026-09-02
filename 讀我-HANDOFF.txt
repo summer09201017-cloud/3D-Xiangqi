@@ -1,0 +1,53 @@
+============================================================
+3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
+更新:2026-09-03 凌晨(HFP 機・Fable 5.1)
+============================================================
+
+★ 這是什麼
+  Three.js 中國象棋 PWA(vanilla,無建置)。線上 https://3d-xiangqi.pages.dev
+  GitHub summer09201017-cloud/3D-Xiangqi(分支 main)。
+  Cloudflare Pages 專案 3d-xiangqi,直傳站(未連 git ⇒ push 不會上線)。
+
+★ 現在到哪(2026-09-03)
+  ✅ 已完成:PvP/PvAI 三檔・📅 每日殘局一組 5 題(v3,0831)・💡 AI 提示(0901,de6c242)・
+     🔄 棋子文字扶正(0902,09d7982:renderer.js 的 geometry.rotateZ(π/2) 一行;
+        使用者退件原話「象棋棋子都需要朝下轉 90 度」)・🏷 verTag v4(0903,補版本簡歷)
+  ⏩ 進行中:無。
+  🔴 待做第一件:統計打點完全沒接(0903 grep sendBeacon/psPing 零命中)= 統計盲區,見 roadmap.md 第一列。
+  📋 待使用者拍板:要不要跟對局場一樣加 ⛶ 全螢幕(這站畫布本來就是整個視窗,先實機量)。
+  git 實況(交接前查,見下方「打包前的 git 三問」):status 乾淨、HEAD == origin/main、未推 0。
+
+★ 怎麼跑 / 測 / 部署
+  npm install
+  npm test                                              # test/daily.mjs 129 項
+  python -m http.server 8795                            # 另一個視窗
+  node scripts/browser-check.mjs                        # 真瀏覽器冒煙 15 項(系統 Edge/Chrome)
+  CHECK_URL=https://3d-xiangqi.pages.dev node scripts/browser-check.mjs
+  部署(⚠ 一定要在 main 分支、而且 push 不會上線):
+  npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true
+  改任何檔先 bump service-worker.js 的 CACHE_NAME(現在 3d-xiangqi-v6)。
+  線上驗收看內容:
+  curl -s "https://3d-xiangqi.pages.dev/service-worker.js?bust=1" | grep -o "3d-xiangqi-v[0-9]*"
+  curl -s "https://3d-xiangqi.pages.dev/js/renderer.js?bust=1" | grep -c rotateZ     # 要 >= 1
+
+★ 本機地雷
+  - 直傳站:git push / push.ps1 不會部署。
+  - SW cache-first:忘了 bump,舊使用者永遠拿舊版,零紅燈。
+  - 棋子貼字方向:renderer.js createPieceMesh 的 rotateZ(Math.PI/2) 不可刪;
+    改幾何/貼圖要真瀏覽器截圖看字(車/士/兵接近對稱,掃一眼看不出來)。
+    正本在 skill 3d-game-kit「圓柱棋子頂面貼字方向」(0901 對局場同病)。
+  - ai.js 是簡化版(不考慮將軍);提示走 _hintCache 同局面快取,借引擎不借難度檔。
+  - js/ 是全域 class 不是 module;test/daily.mjs 用 new Function 串檔,不要改成 ESM。
+  - 姊妹站 xiangqi-arena(對局場,incandescent-stroopwafel-31007a.pages.dev)是另一個 repo。
+
+★ 檔案在哪
+  index.html / css/style.css / manifest.json / img/
+  js/app.js(接線)/ js/renderer.js(Three.js)/ js/gameLogic.js / js/pieces.js / js/ai.js / js/puzzles.js
+  service-worker.js / test/daily.mjs / scripts/browser-check.mjs / push.ps1
+  給人讀:README.md;給 AI:CLAUDE.md;待做:roadmap.md
+
+★ 下一步
+  roadmap.md 🔜 第一列(⛶ 全螢幕先實機量再拍板)。
+
+★ 一鍵裝齊 skill
+  /take-over(pull hfpc-claude-skills → install.bat → sites.json → /sit-down)
