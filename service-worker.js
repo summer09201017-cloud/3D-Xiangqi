@@ -1,5 +1,5 @@
 // ★ 任何檔案有改就 bump CACHE_NAME(這支 SW 是 cache-first,不 bump 舊使用者永遠拿舊版)
-const CACHE_NAME = '3d-xiangqi-v4';
+const CACHE_NAME = '3d-xiangqi-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

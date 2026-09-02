@@ -221,6 +221,10 @@ class ChessRenderer {
         const geometry = new THREE.CylinderGeometry(this.PIECE_RADIUS, this.PIECE_RADIUS, this.PIECE_HEIGHT, 32);
         // Cylinder 預設是立著的，沿著 Y 軸。我們要讓它躺平在棋盤上，並旋轉 90 度使得頂部朝上 (Z軸正向)
         geometry.rotateX(Math.PI / 2);
+        // ★ 0902 使用者退件「棋子的字都要朝下轉 90 度」:r128 圓柱頂面的 UV 是 u↔z、v↔x,
+        //   經上面 rotateX 後貼圖的「上」指向 +X(畫面右)、「右」指向 -Y(畫面下)⇒ 每個字順時針歪 90°。
+        //   再繞 Z 軸轉 +90°(+X→+Y)把字扶正:字的上=遠端(黑方)、字的下=近端(紅方/鏡頭),所有棋子都正著讀。
+        geometry.rotateZ(Math.PI / 2);
         
         const texture = this.createPieceTexture(piece.name, piece.color === 'red');
         
