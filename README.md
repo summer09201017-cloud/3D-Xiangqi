@@ -12,7 +12,7 @@ Three.js 中國象棋 PWA(vanilla,無建置)。**線上:<https://3d-xiangqi.page
 | 📅 每日殘局 | 每天一組 **5 題**(江湖殘局風,16 題題庫),全世界同一組;每題分開記最少步數(`localStorage` 鍵 `xiangqi-daily-v1`) |
 | 3D | 滑鼠/手指拖曳旋轉、縮放;棋子的字一律**朝玩家**(0902 扶正) |
 | PWA | 可安裝;LINE / Facebook / Instagram 內建瀏覽器會提示「換瀏覽器再安裝」 |
-| 📡 統計 | 匿名三層打點(開啟 / `-done` 完賽 / `-dwell` 停留;0903 接上),零個資、離線靜默;儀表板顯示名「3D 象棋(單機版・每日殘局)」 |
+| 📡 統計 | 匿名三層打點(開啟 / `-done` 完賽 / `-dwell` 停留;0903 接上,端點 `/api/ping`、停留秒數參數 `t`),零個資、離線靜默;儀表板顯示名「3D 象棋(單機版・每日殘局)」 |
 
 ## 跑起來
 
@@ -20,7 +20,7 @@ Three.js 中國象棋 PWA(vanilla,無建置)。**線上:<https://3d-xiangqi.page
 npm install                                   # 只有 playwright-core(用系統 Edge/Chrome,不下載瀏覽器)
 npm test                                      # test/daily.mjs 題庫驗算 129 項(零 DOM、零 three)
 python -m http.server 8795                    # 任何靜態伺服器都行,browser-check 預設吃 8795
-node scripts/browser-check.mjs                # 真瀏覽器冒煙 17 項(含 📡 打點兩項:攔請求驗真的送出)
+node scripts/browser-check.mjs                # 真瀏覽器冒煙 18 項(含 📡 打點三項:攔**回應**驗 200、完賽恰一次、零 404)
 CHECK_URL=https://3d-xiangqi.pages.dev node scripts/browser-check.mjs   # 驗線上
 ```
 

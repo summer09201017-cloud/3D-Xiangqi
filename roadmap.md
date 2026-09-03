@@ -7,6 +7,9 @@
 - 💡 AI 提示(0901,棋類批次 1/5,`de6c242`):同引擎算一手、同局面快取、綠圈/綠點標記、送出前過真規則。
 - 🔄 棋子文字扶正(0902):`rotateZ(π/2)` 一行,所有棋子的字朝玩家;SW v5。
 - 🏷 verTag v4(0903):版本簡歷補上 0902 兩件(原本只寫到 v3);SW v6。
+- 🩹 打點端點修正(0903 同日):首版抄的範本寫 `/p` 與 `&s=`,Worker 只認 `/api/ping` 與 `&t=` ⇒ 打點全部 404、資料一筆沒進。
+  驗法一起改:browser-check 從「攔 request 看送出沒」改成「攔 response 看狀態碼」+ 斷言零 404(17→18);SW v8,線上端到端驗過
+  (`/api/summary` 出現 `3d-xiangqi`、KV 有 `g:`/`dw:`/`dl:` 三把鍵)。病根已在 skill `play-stats-dwell` 與守門 `dwell-beacon-guard` 收編。
 - 📡 統計打點三層(0903,agape250 機):開啟 `g=3d-xiangqi` / `-done`(checkGameState 每局一次,`_donePinged` 閂鎖)/ `-dwell`(pagehide/visibilitychange),與對局場同一份範本;Worker `NAMES` 已登;browser-check +2 攔請求驗真的送出(15→17);verTag v5、SW v7。
 
 ## 🔜 待做(CP 值 = 價值 ÷ 時間)

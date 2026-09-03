@@ -362,11 +362,13 @@ window.onload = () => {
 /* 📡 統計打點(hfpc-play-stats;skill play-stats-lite / play-stats-dwell 三層):
    ① 開啟 g=3d-xiangqi ② 完賽 -done(checkGameState 每局一次)③ 真實停留 -dwell(離頁/切背景時回報這次開頁的秒數)。
    零個資:只送站名與事件,沒有 cookie、沒有帳號。離線時 sendBeacon 靜默失敗,不影響下棋。
-   與對局場(xiangqi-arena)同一份範本;站名=CF 專案名 3d-xiangqi,Worker NAMES 已登(0903)。 */
+   與對局場(xiangqi-arena)同一份範本;站名=CF 專案名 3d-xiangqi,Worker NAMES 已登(0903)。
+   ⚠ 端點是 /api/ping(不是 /p)、停留秒數的參數叫 t(不是 s)——寫錯的話 Worker 回 404 或丟棄,
+      打點全部靜默消失而前端零紅燈(0903 首版就是抄到錯範本,當天抓到修掉)。 */
 (() => {
     try {
         const ping = (evt) => {
-            try { navigator.sendBeacon(`https://hfpc-play-stats.summer09201017.workers.dev/p?g=${evt}`); }
+            try { navigator.sendBeacon(`https://hfpc-play-stats.summer09201017.workers.dev/api/ping?g=${evt}`); }
             catch (_) { /* statistics are best-effort */ }
         };
         ping('3d-xiangqi');
@@ -375,7 +377,7 @@ window.onload = () => {
         const dwell = () => {
             if (sent) return;
             sent = true;
-            ping(`3d-xiangqi-dwell&s=${Math.round((Date.now() - openedAt) / 1000)}`);
+            ping(`3d-xiangqi-dwell&t=${Math.round((Date.now() - openedAt) / 1000)}`);
         };
         document.addEventListener('visibilitychange', () => { if (document.hidden) dwell(); });
         window.addEventListener('pagehide', dwell);

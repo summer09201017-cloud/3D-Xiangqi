@@ -23,9 +23,12 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 // 📡 統計打點:攔下送往 play-stats 的請求(sendBeacon 在 Chromium 也會經過 request 事件)
 const beacons = [];
-page.on("request", (r) => { if (r.url().includes("hfpc-play-stats")) beacons.push(r.url()); });
+/* ★ 驗「伺服器收下」不是「瀏覽器送出」:0903 首版只攔 request 就全綠,而端點寫錯(/p 而非 /api/ping)
+   ⇒ Worker 回 404、資料一筆沒進,前端零紅燈。攔 response 拿狀態碼才抓得到。 */
+page.on("response", async (r) => { const u = r.url(); if (u.includes("hfpc-play-stats")) beacons.push({ u, s: r.status() }); });
 await page.goto(URL + "/?v=" + Date.now(), { waitUntil: "networkidle" });
-ok(beacons.some((u) => /[?&]g=3d-xiangqi(&|$)/.test(u)), "📡 開啟打點送出(g=3d-xiangqi)", beacons.join(" | "));
+const opens = beacons.filter((b) => /[?&]g=3d-xiangqi(&|$)/.test(b.u));
+ok(opens.length > 0 && opens.every((b) => b.s === 200), "📡 開啟打點:伺服器收下(200)", JSON.stringify(opens));
 await page.waitForTimeout(900);
 
 ok(await page.locator("#btn-daily").count() === 1, "主選單有「📅 每日殘局」鈕");
@@ -92,8 +95,9 @@ ok(end.winText.includes("新紀錄"), "第一次打=顯示「新紀錄!」(閂�
 const rec = JSON.parse(end.store || "{}");
 ok(Object.values((rec[st.key] || {}).solved || {})[0] === end.redMoves,
   "★ 戰績每題分開記(" + JSON.stringify(rec) + ")");
-const dones = beacons.filter((u) => u.includes("g=3d-xiangqi-done"));
-ok(dones.length === 1, "📡 完賽打點送出且每局只送一次(" + dones.length + " 次)", beacons.join(" | "));
+const dones = beacons.filter((b) => b.u.includes("g=3d-xiangqi-done"));
+ok(dones.length === 1 && dones.every((b) => b.s === 200), "📡 完賽打點:每局一次且伺服器收下 200(" + dones.length + " 次)", JSON.stringify(dones));
+ok(!beacons.some((b) => b.s === 404), "📡 沒有任何打點被伺服器退回 404", JSON.stringify(beacons.filter((b) => b.s !== 200)));
 ok(errors.length === 0, "整場零 pageerror", errors.join(" | "));
 
 await browser.close();
