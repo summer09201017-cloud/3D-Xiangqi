@@ -1,6 +1,6 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-03 凌晨(HFP 機・Fable 5.1)
+更新:2026-09-03(agape250 機・Fable 5.1)📡 統計打點三層接上(v5,SW v7,線上驗過);前一版 0903 凌晨(HFP 機)棋子扶正+verTag v4
 ============================================================
 
 ★ 這是什麼
@@ -11,9 +11,10 @@
 ★ 現在到哪(2026-09-03)
   ✅ 已完成:PvP/PvAI 三檔・📅 每日殘局一組 5 題(v3,0831)・💡 AI 提示(0901,de6c242)・
      🔄 棋子文字扶正(0902,09d7982:renderer.js 的 geometry.rotateZ(π/2) 一行;
-        使用者退件原話「象棋棋子都需要朝下轉 90 度」)・🏷 verTag v4(0903,補版本簡歷)
+        使用者退件原話「象棋棋子都需要朝下轉 90 度」)・🏷 verTag v4(0903,補版本簡歷)・
+     📡 統計三層(0903 agape250 機:app.js 尾段 IIFE 開啟/-dwell + checkGameState 的 -done 每局一次;Worker NAMES 已登;browser-check 15→17)
   ⏩ 進行中:無。
-  🔴 待做第一件:統計打點完全沒接(0903 grep sendBeacon/psPing 零命中)= 統計盲區,見 roadmap.md 第一列。
+  🔴 待做第一件:無 🔴。待做見 roadmap.md(⛶ 全螢幕棋盤待拍板 / AI 考慮將軍 / 手機直向版面)。
   📋 待使用者拍板:要不要跟對局場一樣加 ⛶ 全螢幕(這站畫布本來就是整個視窗,先實機量)。
   git 實況(交接前查,見下方「打包前的 git 三問」):status 乾淨、HEAD == origin/main、未推 0。
 
@@ -21,11 +22,11 @@
   npm install
   npm test                                              # test/daily.mjs 129 項
   python -m http.server 8795                            # 另一個視窗
-  node scripts/browser-check.mjs                        # 真瀏覽器冒煙 15 項(系統 Edge/Chrome)
+  node scripts/browser-check.mjs                        # 真瀏覽器冒煙 17 項(系統 Edge/Chrome)
   CHECK_URL=https://3d-xiangqi.pages.dev node scripts/browser-check.mjs
   部署(⚠ 一定要在 main 分支、而且 push 不會上線):
   npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true
-  改任何檔先 bump service-worker.js 的 CACHE_NAME(現在 3d-xiangqi-v6)。
+  改任何檔先 bump service-worker.js 的 CACHE_NAME(現在 3d-xiangqi-v7)。
   線上驗收看內容:
   curl -s "https://3d-xiangqi.pages.dev/service-worker.js?bust=1" | grep -o "3d-xiangqi-v[0-9]*"
   curl -s "https://3d-xiangqi.pages.dev/js/renderer.js?bust=1" | grep -c rotateZ     # 要 >= 1

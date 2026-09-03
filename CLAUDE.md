@@ -1,11 +1,11 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
-## 現況(**2026-09-03 凌晨,HFP 機**)
+## 現況(**2026-09-03,agape250 機**)
 
 - ✅ v1 對局(PvP / PvAI 三檔)・v2→v3 📅 每日殘局(一組 5 題,0831)・💡 AI 提示(0901,`de6c242`)・
-  🔄 棋子文字扶正(0902,`09d7982`,rotateZ 一行)・verTag v4(0903 補寫版本簡歷)。
-- 線上 https://3d-xiangqi.pages.dev = 最新(SW `3d-xiangqi-v6`;renderer 含 `rotateZ`)。
-- 測試:`npm test` 129/0;`node scripts/browser-check.mjs` 15/0(本機與線上都跑過)。
+  🔄 棋子文字扶正(0902,`09d7982`,rotateZ 一行)・verTag v4(0903 補寫版本簡歷)・📡 統計三層(0903:開啟 / `-done` / `-dwell`,app.js 尾段 IIFE + checkGameState 每局一次;verTag v5、SW v7)。
+- 線上 https://3d-xiangqi.pages.dev = 最新(SW `3d-xiangqi-v7`;renderer 含 `rotateZ`;app.js 含 `sendBeacon`)。
+- 測試:`npm test` 129/0;`node scripts/browser-check.mjs` 17/0(本機與線上都跑過;含攔 play-stats 請求驗開啟/完賽打點真的送出)。
 - 待做見 `roadmap.md`;給人讀的在 `README.md`;給另一台機的在 `讀我-HANDOFF.txt`。
 
 ## 一檔一責

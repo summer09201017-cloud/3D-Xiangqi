@@ -7,12 +7,12 @@
 - 💡 AI 提示(0901,棋類批次 1/5,`de6c242`):同引擎算一手、同局面快取、綠圈/綠點標記、送出前過真規則。
 - 🔄 棋子文字扶正(0902):`rotateZ(π/2)` 一行,所有棋子的字朝玩家;SW v5。
 - 🏷 verTag v4(0903):版本簡歷補上 0902 兩件(原本只寫到 v3);SW v6。
+- 📡 統計打點三層(0903,agape250 機):開啟 `g=3d-xiangqi` / `-done`(checkGameState 每局一次,`_donePinged` 閂鎖)/ `-dwell`(pagehide/visibilitychange),與對局場同一份範本;Worker `NAMES` 已登;browser-check +2 攔請求驗真的送出(15→17);verTag v5、SW v7。
 
 ## 🔜 待做(CP 值 = 價值 ÷ 時間)
 
 | 項 | ⏱ | ★ | 說明 |
 |---|---|---|---|
-| 📡 統計打點三層 | 30m | ★★★ | **完全沒接**(0903 grep `sendBeacon`/`psPing` 在 app.js 與 index.html 零命中)= 統計盲區,牧者看不到有沒有人玩。照 skill `play-stats-lite` + `play-stats-dwell` 三層補(開啟 psPing / `-done` 完賽 / `-dwell` 停留),對局場 app.js 尾段有現成範本可抄;Worker `NAMES` 要補顯示名 |
 | ⛶ 全螢幕棋盤 | 1h | ★★ | 對局場 0902 剛做過(skill `embed-fullscreen-fit` #8)。**這站畫布本來就是整個視窗**,先實機量是不是真的太小,再決定做不做 |
 | AI 考慮將軍 | 半天 | ★★ | `ai.js` 註解自己寫「不考慮將軍」;提示已過真規則但棋力受限。改了要重驗 129 題 |
 | 手機直向版面 | 1h | ★ | 主選單與 HUD 在直向手機的可讀性沒實機驗過 |

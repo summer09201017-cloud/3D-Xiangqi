@@ -101,6 +101,7 @@ class App {
 
     startGame(mode, difficulty = 'easy', dailyIndex) {
         this.gameMode = mode;
+        this._donePinged = false;   // 📡 每局只送一次 -done(統計)
         this.aiDifficulty = mode === 'daily' ? 'hard' : difficulty;   // 📅 殘局的黑方守得認真才有題味
 
         // Hide Menus
@@ -278,6 +279,11 @@ class App {
 
     checkGameState() {
         if (this.gameLogic.isGameOver) {
+            /* 📡 完賽打點:每局只送一次(動畫回呼會讓本函式跑兩次);統計壞掉不可以影響遊戲 */
+            if (!this._donePinged) {
+                this._donePinged = true;
+                try { if (window.__xqPingDone) window.__xqPingDone(); } catch (_) { /* best-effort */ }
+            }
             /* 📅 每日殘局的收場:贏=記步數(當日取最少)+新紀錄;輸=溫柔的「再試一次」
                (同一題重開,btn-restart 走 startGame('daily') 拿到的還是今天這一題)。 */
             if (this.gameMode === 'daily' && this.daily) {
@@ -352,3 +358,27 @@ class App {
 window.onload = () => {
     window.app = new App();
 };
+
+/* 📡 統計打點(hfpc-play-stats;skill play-stats-lite / play-stats-dwell 三層):
+   ① 開啟 g=3d-xiangqi ② 完賽 -done(checkGameState 每局一次)③ 真實停留 -dwell(離頁/切背景時回報這次開頁的秒數)。
+   零個資:只送站名與事件,沒有 cookie、沒有帳號。離線時 sendBeacon 靜默失敗,不影響下棋。
+   與對局場(xiangqi-arena)同一份範本;站名=CF 專案名 3d-xiangqi,Worker NAMES 已登(0903)。 */
+(() => {
+    try {
+        const ping = (evt) => {
+            try { navigator.sendBeacon(`https://hfpc-play-stats.summer09201017.workers.dev/p?g=${evt}`); }
+            catch (_) { /* statistics are best-effort */ }
+        };
+        ping('3d-xiangqi');
+        const openedAt = Date.now();
+        let sent = false;
+        const dwell = () => {
+            if (sent) return;
+            sent = true;
+            ping(`3d-xiangqi-dwell&s=${Math.round((Date.now() - openedAt) / 1000)}`);
+        };
+        document.addEventListener('visibilitychange', () => { if (document.hidden) dwell(); });
+        window.addEventListener('pagehide', dwell);
+        window.__xqPingDone = () => ping('3d-xiangqi-done');
+    } catch (_) { /* 統計壞掉不可以影響遊戲 */ }
+})();

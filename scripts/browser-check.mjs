@@ -21,7 +21,11 @@ const ok = (cond, msg, note = "") => {
 const page = await browser.newPage({ viewport: { width: 1000, height: 720 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
+// 📡 統計打點:攔下送往 play-stats 的請求(sendBeacon 在 Chromium 也會經過 request 事件)
+const beacons = [];
+page.on("request", (r) => { if (r.url().includes("hfpc-play-stats")) beacons.push(r.url()); });
 await page.goto(URL + "/?v=" + Date.now(), { waitUntil: "networkidle" });
+ok(beacons.some((u) => /[?&]g=3d-xiangqi(&|$)/.test(u)), "📡 開啟打點送出(g=3d-xiangqi)", beacons.join(" | "));
 await page.waitForTimeout(900);
 
 ok(await page.locator("#btn-daily").count() === 1, "主選單有「📅 每日殘局」鈕");
@@ -88,6 +92,8 @@ ok(end.winText.includes("新紀錄"), "第一次打=顯示「新紀錄!」(閂�
 const rec = JSON.parse(end.store || "{}");
 ok(Object.values((rec[st.key] || {}).solved || {})[0] === end.redMoves,
   "★ 戰績每題分開記(" + JSON.stringify(rec) + ")");
+const dones = beacons.filter((u) => u.includes("g=3d-xiangqi-done"));
+ok(dones.length === 1, "📡 完賽打點送出且每局只送一次(" + dones.length + " 次)", beacons.join(" | "));
 ok(errors.length === 0, "整場零 pageerror", errors.join(" | "));
 
 await browser.close();
