@@ -207,8 +207,8 @@ class App {
        (另寫一份的話,兩邊分岔的那天不會有任何測試變紅)。同 shot-success-odds
        「借判定同一支 simulate」的作法。
        三條規矩:
-        ① 給出去之前先過 gameLogic.isValidMove —— ai.js 的 getAllLegalMoves 自己的註解
-           就寫著「簡化版,不考慮將軍/被將軍」⇒ 不驗的話會提示一手玩家**點不動**的棋,
+        ① 給出去之前先過 gameLogic.isValidMove —— ai.js 的走法產生器與 gameLogic 是兩支程式碼 ⇒ 不驗的話,
+           哪天分岔了會提示一手玩家**點不動**的棋,
            那比沒有提示更糟(他會以為遊戲壞了,而他是對的)。
         ② 同一個局面按幾次都要回同一手:calculateBestMove 裡有 moves.sort(() => random)
            ⇒ 同分的兩手會輪流跳,看起來像跳針。快取的鑰匙**認位置、不排序**。
@@ -236,7 +236,7 @@ class App {
         setTimeout(() => {
             let move = null;
             try {
-                move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), me, 'hard');
+                move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), me, 'hint');
                 if (move && !this.gameLogic.isValidMove(          // ①
                     move.from.row, move.from.col, move.to.row, move.to.col)) move = null;
             } catch (e) {

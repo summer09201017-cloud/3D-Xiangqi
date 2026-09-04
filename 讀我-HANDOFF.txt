@@ -1,6 +1,6 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-03(agape250 機・Fable 5.1)📡 統計打點三層接上(v5,SW v7,線上驗過);前一版 0903 凌晨(HFP 機)棋子扶正+verTag v4
+更新:2026-09-04(agape250 機・Opus 5)🧠 AI 引擎重寫 + 📅 題庫全換「N 手連將殺」+ 規則層補「不得自將」(SW 3d-xiangqi-v9,線上驗過)
 ============================================================
 
 ★ 這是什麼
@@ -9,6 +9,16 @@
   Cloudflare Pages 專案 3d-xiangqi,直傳站(未連 git ⇒ push 不會上線)。
 
 ★ 現在到哪(2026-09-03)
+  ✅ 0904 這一輪(使用者:「AI 太笨了,常給一些沒用的提示」「每日殘局太簡單了,一點難度都沒有」):
+     ① gameLogic.isValidMove 補「不得自將」(isInCheck 早就寫好,從沒被呼叫)——連玩家都能走送將的棋
+     ② ai.js 重寫:合法走法/將軍/將死/困斃 + PST + MVV-LVA + alpha-beta + 靜態搜尋 + 迭代加深
+        (搜尋內部偽合法求速度,真正合法性只在根節點驗一次)
+     ③ 提示改用獨立 hint 檔(比高級深一層、無同分隨機 ⇒ 同局面同答案)
+     ④ 題庫 18 題全換成機器窮舉驗過的 N 手連將殺(2手×2 3手×5 4手×6 5手×5);黑方一律有反擊子
+     ⑤ test 第③節改窮舉驗證(保證,不是抽樣)。測試 251 / browser 18 全綠
+     量到:同檔位新舊對打 8 盤 新 6 : 舊 0.5
+     ⚠ 玩法有變:每日殘局從「打到贏」變成「N 手連將殺」,黑方會反擊,玩家真的可能輸
+     ⚠ 題庫是 scripts 生成 + 求解器驗的,不要手改題目座標(手擺的直覺錯誤率本輪實測就踩到)
   ✅ 已完成:PvP/PvAI 三檔・📅 每日殘局一組 5 題(v3,0831)・💡 AI 提示(0901,de6c242)・
      🔄 棋子文字扶正(0902,09d7982:renderer.js 的 geometry.rotateZ(π/2) 一行;
         使用者退件原話「象棋棋子都需要朝下轉 90 度」)・🏷 verTag v4(0903,補版本簡歷)・
@@ -27,7 +37,7 @@
   CHECK_URL=https://3d-xiangqi.pages.dev node scripts/browser-check.mjs
   部署(⚠ 一定要在 main 分支、而且 push 不會上線):
   npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true
-  改任何檔先 bump service-worker.js 的 CACHE_NAME(現在 3d-xiangqi-v8)。
+  改任何檔先 bump service-worker.js 的 CACHE_NAME(現在 3d-xiangqi-v9)。
   線上驗收看內容:
   curl -s "https://3d-xiangqi.pages.dev/service-worker.js?bust=1" | grep -o "3d-xiangqi-v[0-9]*"
   curl -s "https://3d-xiangqi.pages.dev/js/renderer.js?bust=1" | grep -c rotateZ     # 要 >= 1
@@ -38,7 +48,9 @@
   - 棋子貼字方向:renderer.js createPieceMesh 的 rotateZ(Math.PI/2) 不可刪;
     改幾何/貼圖要真瀏覽器截圖看字(車/士/兵接近對稱,掃一眼看不出來)。
     正本在 skill 3d-game-kit「圓柱棋子頂面貼字方向」(0901 對局場同病)。
-  - ai.js 是簡化版(不考慮將軍);提示走 _hintCache 同局面快取,借引擎不借難度檔。
+  - ai.js 已於 0904 重寫(懂將軍/將死/困斃,含靜態搜尋與迭代加深);提示走 _hintCache 同局面快取,
+    借引擎不借難度檔,用獨立的 hint 檔(比高級深一層、無同分隨機)。
+  - ★ 隨機只能給初級檔。中級以上加「機率亂走」= 一盤丟掉一台車等級的分數(0904 消融實測)。
   - js/ 是全域 class 不是 module;test/daily.mjs 用 new Function 串檔,不要改成 ESM。
   - 姊妹站 xiangqi-arena(對局場,incandescent-stroopwafel-31007a.pages.dev)是另一個 repo。
 

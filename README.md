@@ -9,7 +9,7 @@ Three.js 中國象棋 PWA(vanilla,無建置)。**線上:<https://3d-xiangqi.page
 |---|---|
 | 對局 | 玩家對玩家 / 玩家對 AI(初級・中級・高級;minimax + alpha-beta) |
 | 💡 AI 提示 | 借同一支引擎從玩家這邊算一手;綠圈=要動的棋、綠點=要去的地方;同一局面按兩次同一手(不跳針) |
-| 📅 每日殘局 | 每天一組 **5 題**(江湖殘局風,16 題題庫),全世界同一組;每題分開記最少步數(`localStorage` 鍵 `xiangqi-daily-v1`) |
+| 📅 每日殘局 | 每天一組 **5 題**(**N 手連將殺**,18 題題庫:2手×2 3手×5 4手×6 5手×5,每題機器窮舉驗過),全世界同一組;每題分開記最少步數(`localStorage` 鍵 `xiangqi-daily-v1`) |
 | 3D | 滑鼠/手指拖曳旋轉、縮放;棋子的字一律**朝玩家**(0902 扶正) |
 | PWA | 可安裝;LINE / Facebook / Instagram 內建瀏覽器會提示「換瀏覽器再安裝」 |
 | 📡 統計 | 匿名三層打點(開啟 / `-done` 完賽 / `-dwell` 停留;0903 接上,端點 `/api/ping`、停留秒數參數 `t`),零個資、離線靜默;儀表板顯示名「3D 象棋(單機版・每日殘局)」 |
@@ -43,7 +43,8 @@ js/app.js                  接線:選單 / 對局 / 每日殘局 / 💡 提示(_
 js/renderer.js             Three.js 棋盤與棋子(圓柱 + Canvas 貼字;rotateX 躺平 + rotateZ 讓字朝玩家)
 js/gameLogic.js            盤面 / 走子 / 將軍
 js/pieces.js               走法規則
-js/ai.js                   minimax + alpha-beta(簡化版,註解自己寫「不考慮將軍」)
+js/ai.js                   搜尋引擎:合法走法(過濾自將)/將軍/將死/困斃 + PST + MVV-LVA
+                           + alpha-beta + 靜態搜尋 + 迭代加深(0904 重寫)
 js/puzzles.js              每日殘局題庫 16 題 + 日期取題(UTC+8)
 service-worker.js          cache-first;CACHE_NAME 要 bump
 test/daily.mjs             題庫驗算(擺位合法 / 決定性 / 每題 AI 實打解得動 / 提示快取鑰匙)
