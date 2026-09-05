@@ -2,6 +2,9 @@
 
 ## ✅ 已完成(別重做)
 
+- **v6(2026-09-05,HFP 機・0904-fb)🔗 選單多一條到「3D 象棋對局場」的路**(e9caf9c):兩象棋站各只有 5 次/30 天,互相帶路比改亂數網址便宜(改名撞 CF 凍結;`incandescent-stroopwafel-31007a.pages.dev` 就是正版)。
+  verTag v6 + v5 併入前幾版;service-worker CACHE v9→v10。⚠ 部署 `pages deploy .` 會把 CLAUDE.md / README / package.json 一起上線(公開可讀,非機密;.git 是 SPA fallback 沒外洩)——建議改成 stage 目錄再部署(待做)。
+
 - v1 3D 象棋 PWA:PvP / PvAI 三檔、OrbitControls 自由轉、安裝鈕、內建瀏覽器提示。
 - v2 → v3 📅 每日殘局:16 題題庫、每天一組 5 題(⚠ 題庫已於 0904 全部換成「N 手連將殺」18 題,見本節最後一條)、每題分開記最少步數、題庫逐題機器驗(0831)。
 - 💡 AI 提示(0901,棋類批次 1/5,`de6c242`):同引擎算一手、同局面快取、綠圈/綠點標記、送出前過真規則。
