@@ -57,6 +57,9 @@ class App {
         if (btnDailyRetry) btnDailyRetry.addEventListener('click', () => {
             this.startGame('daily', 'easy', this.daily ? this.daily.index : undefined);
         });
+        /* 🔗 ?daily 深連結(0906,信友火花「今日挑戰」卡直達):等於代按「📅 每日殘局」。
+           setTimeout 0 = 等 constructor 把 renderer 等都建好再開局。 */
+        if (/[?&]daily(?:=|&|$)/.test(location.search)) setTimeout(() => this.startGame('daily'), 0);
     }
 
     /* 📅 每日殘局的本機戰績:{ "YYYY-MM-DD": { solved: { 題id: 那題最少步 } } }。
