@@ -6,7 +6,7 @@
 ★★★★★ 2026-09-05(HFP 機・Fable 5.1・0904-fb)🔗 v6 選單多一條到「3D 象棋對局場」的路 ✅ 已上線(e9caf9c;sw v10)★★★★★
   由來:十二站健檢——兩象棋站各只有 5 次/30 天,互相帶路比改亂數網址便宜(改名撞 CF 凍結)。對局場那邊(xiangqi-arena v8)也加了回來的路。
   改動:index.html verTag 上方一個 <p> 連到 https://incandescent-stroopwafel-31007a.pages.dev/;verTag v6 + v5 併入前幾版;service-worker.js CACHE v9→v10(cache-first 不 bump 舊使用者永遠拿舊版)。
-  npm test(daily 251)綠;`npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true`;線上 sw v10、「版本 v6」、連結都在。
+  npm test(daily 251)綠;`npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true`;線上 sw v12、「版本 v8」(0907 ⛶ 手機放大鈕;v11/v7 是 0906 的 ?daily)、連結都在。
   🟡 **部署 `.` 會把 CLAUDE.md / README.md / package.json 一起放到線上**(curl 得到真內容;非機密,repo 本來就公開文件)。.git/HEAD 回的是 SPA fallback(index.html)沒外洩。
      建議改成 stage 目錄再部署(照 xiangqi-arena 的 npm run stage),記 roadmap 待做。
 
