@@ -4,7 +4,7 @@
   "description": "3D Chinese Chess PWA",
   "main": "index.js",
   "scripts": {
-    "test": "node test/daily.mjs"
+    "test": "node test/daily.mjs && node test/hint.mjs"
   },
   "keywords": [],
   "author": "",
