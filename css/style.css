@@ -115,6 +115,42 @@ button:hover {
     min-height: 20px;
 }
 
+/* ══════════ 下棋中的資訊卡改成左上角小 HUD(2026-09-09)══════════
+   使用者退件原話:「左邊遊戲進行中的視窗,要縮小,擋到棋盤了」。
+   病根:#ui-layer 是 `display:flex; justify-content:center; align-items:center`
+     ⇒ **每一個** .panel 都被擺在畫面正中央,包括這張「下棋中一直開著」的卡
+     ⇒ 它正好壓在棋盤上。而且它沿用 .panel 的 padding:30px、h2 的 margin-bottom:20px、
+       button 的 display:block/width:100%/font-size:18px ⇒ 一張又大又高的卡。
+   ★ 其他面板(主選單 / 難度 / 結算)是「彈出來等你回應」的,置中是對的 —— 只改這一張。
+   ⇒ 絕對定位到左上角 + 縮小字級與間距 + 三顆鈕排成一列。 */
+#game-info {
+    position: absolute;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    padding: 8px 10px;
+    border-width: 1px;
+    border-radius: 10px;
+    text-align: left;
+    max-width: min(76vw, 380px);
+    background: rgba(0, 0, 0, 0.72);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+#game-info h2 { display: none; }          /* 「遊戲進行中」沒有資訊,卻吃掉一行 + 20px margin */
+#game-info #turn-indicator { font-size: .95rem; margin-bottom: 4px; }
+#game-info #game-status { font-size: .85rem; line-height: 1.45; min-height: 0; }
+#game-info #daily-info { font-size: 11.5px !important; margin-bottom: 4px !important; }
+#game-info .btn-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* ⚠ 要蓋掉三處:全域 button 的 display:block/width:100%/margin/font-size,
+     以及下面那條 `#game-info button { margin-top: 15px }`。 */
+#game-info .btn-row button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: auto; flex: 0 0 auto;
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 13px;
+    min-height: 40px;                     /* 觸控目標還是要 ≥40px */
+}
+
 /* 🏷 版本與改版簡歷:預設收合、打開可捲(ver-fold v1(game-must-haves/fold-vertag))
    ★ max-height + overflow 是重點:少了它,「打開」只是把遮擋換個時機
      —— 1000 字以上的簡歷照樣蓋掉選單(撞球 0907 的原病)。 */

@@ -1,6 +1,39 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
-## 現況(**2026-09-08,agape250 機**)
+## 現況(**2026-09-09,agape250 機**)
+
+- 📐🖐🎥🎨 **相機裝不下棋盤 + 旋轉太靈敏 + HUD 擋棋盤 + 重置視角 + 舊站配色(0909,使用者實機退件三件)**:
+  ① 📐 **相機距離寫死** —— 這是從一開始就在的真 bug:`initScene` 把相機釘在 `(0,-60,90)`,
+     `onWindowResize` 只改 `aspect`、**距離永遠不動**。手機**直向**(390×844,aspect 0.46)
+     水平視角只剩約 19°,在那個距離看得到約 36 單位寬,而棋盤有 90 單位 ⇒ 棋盤爆出畫面兩三倍、
+     只看得到中間幾格。`manifest` 鎖 `landscape`,所以「裝成 App」剛好躲過,**用瀏覽器直向開就中**。
+     這也讓「旋轉太靈敏」更嚴重(看不到全貌時轉一點就天翻地覆)。
+     ⇒ 新增 `fitCamera()`,算法照抄姊妹站 `xiangqi-arena`(它 0902 重建時就修掉了這個病):
+       用 fov 與 aspect 反推「要退多遠才裝得下」,寬高各算一次取大的;只改**距離**、不改俯角
+       (方向沿用 `INITIAL_CAM` 的 (0,-60,90) ⇒ 維持 atan(90/60) ≈ 56°,和對局場同角度)。
+       接在 `initScene`(controls 之後 —— fitCamera 會設 `controls.target`,順序反了會靜靜跳過)
+       與 `onWindowResize`(⚠ 只更新 aspect 不夠,長寬比一變「要退多遠」也變了)。
+     實測直向 390×844:棋盤四角全在畫面內、盤寬 330px。
+  ② 🖐 觸控 `rotateSpeed 1.0 → 0.4`、`panSpeed → 0.5`(`pointer: coarse` 才調,滑鼠維持 1.0)。
+     旋轉量 = 2π × 拖曳像素 ÷ 容器高 × rotateSpeed ⇒ 劃 150px 從 **64° 降到 25°**(實測)。
+     兩象棋站同一天同一條。
+  ③ 🗂 **`#game-info` 從「畫面正中央的大彈窗」改成「左上角小 HUD」**(退件原話「擋到棋盤了」)。
+     病根:`#ui-layer` 是 `flex; justify-content:center; align-items:center`
+     ⇒ **每一個** `.panel` 都被擺在畫面正中央,包括這張「下棋中一直開著」的卡,正好壓在棋盤上;
+     又沿用 `.panel` 的 `padding:30px`、`h2` 的 `margin-bottom:20px`、全域 `button` 的
+     `display:block/width:100%/font-size:18px` ⇒ 一張又大又高的卡。
+     ⇒ `position:absolute` 貼左上、字級與間距縮小、三顆鈕排一列(`.btn-row`)、`h2` 藏掉
+       (「遊戲進行中」四個字沒有資訊卻吃掉一行 + 20px)。實測只佔畫面 **7%**、不壓畫面中心。
+     ★ 只改這一張:主選單 / 難度 / 結算是「彈出來等你回應」的,置中是對的。
+  ④ 🎥 新增 `resetCamera()` + `#btn-camera`(「🎥 重置視角」)。⚠ 一定要連 `controls.target` 一起歸零
+     —— 兩指平移會把 target 拖走,只搬 `camera.position` 會變成「從新位置看著被拖歪的中心」,更亂。
+  ⑤ 🎨 配色照使用者指定的參考站 3chinese.netlify.app(**已經是 Netlify 404、站沒了**)⇒
+     唯一依據是使用者存下的兩張手機截圖,取色寫進 `PALETTE`:棋子象牙白面 + **綠邊**、
+     紅字 `#d81f26`、黑方字 **深藍 `#1b2a5e`**、棋盤面米白 `0xece0c0` + 深咖啡格線、背景深板岩藍。
+     ★ 這一份要和 `xiangqi-arena` 一模一樣。💡 提示的綠圈綠點刻意不動(亮萊姆綠仍分得出來,截圖比對過)。
+  驗收:`npm test` 265 過 0 失敗;`npm run check` 20 過 0 失敗;
+    另有實機驗收腳本(scratchpad)14 條全綠:HUD 位置/佔比/不壓中心、棋盤四角在畫面內、
+    重置視角回到開場座標與 target、劃 150px 轉 25°、棋子側面 `#3fa84c`、棋盤面 `#ece0c0`、32 顆棋子、零 pageerror。
 
 - 🩹💡 **修「裝到手機打開就 ERR_FAILED」+ 提示先算「幾手必勝」(0908,使用者實機退件兩件)**:
   ① 退件是一張實機截圖:安裝後打開 → `3d-xiangqi.pages.dev/index.html`「無法連上這個網站 / ERR_FAILED」。
@@ -47,7 +80,7 @@
 - 🩹 0903 同日修:首版抄到的範本端點是 `/p`(Worker 只認 `/api/ping`)、停留秒數參數寫 `s`(要 `t`)⇒ 打點全部 404、資料一筆沒進。
   📡 打點驗收要看**回應狀態碼**,不是「有沒有送出」(0903 實錘:端點寫 /p 而非 /api/ping,請求照樣送出、sendBeacon 不看回應、前端零紅燈,而 Worker 回 404、資料一筆不進);browser-check 已改成攔 `page.on("response")` 驗 200 並斷言「沒有任何打點被退回 404」。
   端到端證明:`/api/summary` 出現 `3d-xiangqi`(open=1、dwellAvg=95),KV 有 `g:`/`dw:`/`dl:` 三把鍵。
-- 線上 https://3d-xiangqi.pages.dev = 最新。**SW 現值 `3d-xiangqi-v15`、verTag v11**(本輪我推到 v13/v9,之後別場的「🏷 版本簡歷可收合」批次續推到 v14/v10);renderer 含 `rotateZ`;app.js 含 `sendBeacon`。
+- 線上 https://3d-xiangqi.pages.dev = 最新。**SW 現值 `3d-xiangqi-v16`、verTag v12**(本輪我推到 v13/v9,之後別場的「🏷 版本簡歷可收合」批次續推到 v14/v10);renderer 含 `rotateZ`;app.js 含 `sendBeacon`。
 - 測試:`npm test` = **daily 251/0 + hint 6/0**;`node scripts/browser-check.mjs` 18/0(本機與線上都跑過;含攔 play-stats 請求驗開啟/完賽打點真的送出)。
 - 待做見 `roadmap.md`;給人讀的在 `README.md`;給另一台機的在 `讀我-HANDOFF.txt`。
 

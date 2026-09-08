@@ -15,7 +15,30 @@ class ChessRenderer {
         this.mouse = new THREE.Vector2();
         
         this.onPieceClick = null; // 回呼函數
-        
+
+        /* 🎥 開場視角(重置視角會放回這裡)。只寫這一份,兩邊都讀它。 */
+        this.INITIAL_CAM = { x: 0, y: -60, z: 90 };
+
+        /* 🎨 配色(2026-09-09 使用者指定:「3chinese.netlify.app 的綠底棋子與米白底棋盤
+             做得很漂亮,請參考」)。那是本系列最早那個**沒有原始碼**的舊站,
+             現在 https://3chinese.netlify.app/ 已經是 Netlify 404(站沒了)⇒
+             唯一的依據是使用者存下來的兩張手機截圖,配色是從截圖取的。
+             ★ 所以這幾個值就是「規格」本身,不要憑印象改;要改請先看截圖。
+           改之前是什麼樣子(全部偏黃褐、和木紋背景糊在一起):
+             棋盤 0xd2b48c、格線 0x000000、棋子頂 #f0d9b5 + 棕圈、棋子側 0xe0c090、
+             紅字 #ff0000、黑字 #000000、背景 0x333333。 */
+        this.PALETTE = {
+            bg: 0x2f4050,          // 深板岩藍(舊站的背景)
+            boardTop: 0xece0c0,    // 米白棋盤面
+            boardSide: 0xdcc9a0,   // 棋盤側面(厚度)略深一點,看得出是一塊板
+            gridLine: 0x5b3a1a,    // 深咖啡格線(舊站是深棕,不是黑)
+            pieceSide: 0x3fa84c,   // ★ 綠色棋子側面 —— 這就是使用者說的「綠底棋子」
+            pieceFace: '#f8f5ee',  // 棋子頂面:接近白的象牙白
+            pieceRing: '#cfc7b5',  // 頂面那兩圈:柔和的灰,不要棕色
+            redInk: '#d81f26',     // 紅方的字(舊站是正紅偏暗,不是 #ff0000 那種螢光紅)
+            blackInk: '#1b2a5e',   // 黑方的字:**深藍**,不是黑(截圖看得很清楚)
+        };
+
         // 常數設定
         this.SQUARE_SIZE_X = 10;
         this.SQUARE_SIZE_Y = 8.5; // 讓棋盤長度(Y軸)短一點，符合視覺比例
@@ -39,12 +62,14 @@ class ChessRenderer {
     initScene(initialBoardState) {
         // 1. Scene
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x333333);
+        this.scene.background = new THREE.Color(this.PALETTE.bg);
         
         // 2. Camera
         const aspect = window.innerWidth / window.innerHeight;
         this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
-        this.camera.position.set(0, -60, 90); // 調整視角
+        /* 開場視角。★ 座標只寫一份(this.INITIAL_CAM)是為了「🎥 重置視角」放回**同一個**位置
+           —— 抄第二份的那天兩邊就會漂(俯角 atan(90/60) ≈ 56°,和對局場同一個角度)。 */
+        this.camera.position.set(this.INITIAL_CAM.x, this.INITIAL_CAM.y, this.INITIAL_CAM.z);
         this.camera.lookAt(0, 0, 0);
         
         // 3. Renderer
@@ -58,6 +83,16 @@ class ChessRenderer {
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
+        /* 🖐 觸控裝置把靈敏度降下來(2026-09-09 使用者實機退件:「手機版棋盤旋轉太快、太靈敏」;
+             姊妹站 xiangqi-arena 同一天同一條)。
+           OrbitControls 的旋轉量 = 2π × 拖曳像素 ÷ **容器高** × rotateSpeed(兩軸都除容器高)
+           ⇒ 速度 1.0 時直向手機(844 高)一根手指劃 150px 就轉 **64°**,手指一滑棋盤就飛走。
+           ⇒ 觸控 0.4(同樣 150px ≈ 26°,對局場實測 25°)、平移 0.5;滑鼠維持 1.0
+             (桌機是按著拖曳看、有滑鼠精度,一起調慢會變成拖很多下才轉得動)。 */
+        const coarsePointer = typeof window.matchMedia === 'function'
+            && window.matchMedia('(pointer: coarse)').matches;
+        this.controls.rotateSpeed = coarsePointer ? 0.4 : 1.0;
+        this.controls.panSpeed = coarsePointer ? 0.5 : 1.0;
         // 允許玩家水平 360 度任意旋轉觀看棋盤
         this.controls.minAzimuthAngle = -Infinity;
         this.controls.maxAzimuthAngle = Infinity;
@@ -65,6 +100,10 @@ class ChessRenderer {
         this.controls.maxPolarAngle = Math.PI; // 允許轉到棋盤正下方
         this.controls.minPolarAngle = 0; // 允許轉到正上方純 2D 視角
         
+        /* ★ 相機距離照畫布長寬比算(見 fitCamera)。一定要在 controls 之後叫 ——
+             fitCamera 會去設 controls.target,順序反過來那一段會靜靜跳過。 */
+        this.fitCamera();
+
         // 5. Lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
@@ -81,10 +120,63 @@ class ChessRenderer {
         this.updateBoardState(initialBoardState);
     }
     
+    /* 📐 相機距離要**照畫布長寬比算**,不可以寫死(2026-09-09 補)。
+       ★★ 0909 實機截圖抓到的真 bug:這一站的相機從一開始就寫死在 (0,-60,90),
+          只有 onWindowResize 改 aspect、距離永遠不動。桌機寬螢幕剛好裝得下,
+          但手機**直向**(390×844,aspect 0.46)水平視角只剩約 19° ⇒
+          在那個距離看得到的寬度約 36 單位,而棋盤有 90 單位寬
+          ⇒ 棋盤爆出畫面兩三倍,只看得到中間幾格。
+          (manifest 鎖 landscape,所以「裝成 App」時剛好躲過;用瀏覽器直向開就中了。)
+          這也讓「旋轉太靈敏」更嚴重 —— 棋盤大到看不到全貌時,轉一點就天翻地覆。
+       ⇒ 算法照抄姊妹站 xiangqi-arena 的 fitCamera(它 0902 重建時就修掉了這個病):
+         用 fov 與 aspect 反推「要退多遠才裝得下」,寬與高各算一次取大的。
+       ★ 只改**距離**,不改俯角:方向沿用 INITIAL_CAM 的 (0,-60,90) ⇒ 俯角維持 atan(90/60) ≈ 56°。 */
+    fitCamera() {
+        if (!this.camera) return;
+        const w = window.innerWidth, h = window.innerHeight;
+        if (!w || !h) return;
+        const aspect = w / h;
+        const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
+        // 棋盤外圍留半格邊:留太多是一片空白,留太少棋子貼著邊緣(平板上手指還會蓋掉)
+        const boardW = this.BOARD_WIDTH + this.SQUARE_SIZE_X * 0.5;
+        const boardH = this.BOARD_HEIGHT + this.SQUARE_SIZE_Y * 0.5;
+        const distForH = (boardH / 2) / Math.tan(halfFov);
+        const distForW = (boardW / 2) / Math.tan(halfFov) / aspect;
+        // 1.06:斜看的投影比正上方矮,但四個角要留一點餘裕(對局場量出來的值)
+        const dist = Math.max(distForH, distForW) * 1.02 * 1.06;
+        const len = Math.hypot(this.INITIAL_CAM.y, this.INITIAL_CAM.z) || 1;
+        this.camera.position.set(
+            0,
+            dist * (this.INITIAL_CAM.y / len),
+            dist * (this.INITIAL_CAM.z / len),
+        );
+        this.camera.lookAt(0, 0, 0);
+        if (this.controls) {
+            this.controls.target.set(0, 0, 0);
+            this.controls.update();
+        }
+    }
+
+    /* 🎥 重置視角(2026-09-09 使用者要求:「再加上重置視角小按鈕」)。
+       ⚠ 一定要連 controls.target 一起歸零 —— 兩指平移會把 target 拖走,
+         只搬 camera.position 的話會變成「從新位置看著被拖歪的中心」,比原本更亂。
+       ⚠ 也要清掉阻尼還沒吃完的殘量(再 update 一次),不然放手後它會繼續飄一小段。 */
+    resetCamera() {
+        this.fitCamera();
+        if (this.controls) this.controls.update();
+    }
+
     createBoard() {
         // 棋盤本體 (木頭顏色)
         const boardGeo = new THREE.BoxGeometry(this.BOARD_WIDTH, this.BOARD_HEIGHT, this.BOARD_THICKNESS);
-        const boardMat = new THREE.MeshPhongMaterial({ color: 0xd2b48c }); // 木頭色
+        /* BoxGeometry 的材質順序是 [+X, -X, +Y, -Y, +Z, -Z];這塊板的厚度在 Z
+           ⇒ index 4(+Z)是棋盤面,其餘是側面與底面。 */
+        const sideMat = new THREE.MeshPhongMaterial({ color: this.PALETTE.boardSide });
+        const boardMat = [
+            sideMat, sideMat, sideMat, sideMat,
+            new THREE.MeshPhongMaterial({ color: this.PALETTE.boardTop }),   // +Z = 棋盤面
+            sideMat,
+        ];
         this.boardMesh = new THREE.Mesh(boardGeo, boardMat);
         this.boardMesh.receiveShadow = true;
         // 把棋盤表面放在 z=0 平面
@@ -92,7 +184,7 @@ class ChessRenderer {
         this.scene.add(this.boardMesh);
         
         // 繪製棋盤線條 (簡單的線段)
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const lineMaterial = new THREE.LineBasicMaterial({ color: this.PALETTE.gridLine });
         const startX = -this.BOARD_WIDTH / 2 + this.SQUARE_SIZE_X / 2;
         const startY = -this.BOARD_HEIGHT / 2 + this.SQUARE_SIZE_Y / 2;
         
@@ -192,11 +284,11 @@ class ChessRenderer {
         const ctx = canvas.getContext('2d');
         
         // 背景
-        ctx.fillStyle = '#f0d9b5';
+        ctx.fillStyle = this.PALETTE.pieceFace;
         ctx.beginPath();
         ctx.arc(64, 64, 60, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#8b5a2b';
+        ctx.strokeStyle = this.PALETTE.pieceRing;
         ctx.lineWidth = 4;
         ctx.stroke();
 
@@ -207,7 +299,7 @@ class ChessRenderer {
         ctx.stroke();
         
         // 文字
-        ctx.fillStyle = isRed ? '#ff0000' : '#000000';
+        ctx.fillStyle = isRed ? this.PALETTE.redInk : this.PALETTE.blackInk;
         ctx.font = 'bold 60px "楷体", "KaiTi", serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -229,10 +321,11 @@ class ChessRenderer {
         const texture = this.createPieceTexture(piece.name, piece.color === 'red');
         
         // 材質陣列：側面使用木頭色，頂面使用帶有文字的紋理
+        const greenRim = new THREE.MeshPhongMaterial({ color: this.PALETTE.pieceSide });
         const materials = [
-            new THREE.MeshPhongMaterial({ color: 0xe0c090 }), // 側面
-            new THREE.MeshPhongMaterial({ map: texture }),     // 頂面
-            new THREE.MeshPhongMaterial({ color: 0xe0c090 })  // 底面
+            greenRim,                                       // 側面 = 綠(使用者指定的「綠底棋子」)
+            new THREE.MeshPhongMaterial({ map: texture }),  // 頂面 = 象牙白 + 字
+            greenRim                                        // 底面
         ];
         
         const mesh = new THREE.Mesh(geometry, materials);
@@ -372,6 +465,9 @@ class ChessRenderer {
         if (!this.camera || !this.renderer) return;
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
+        /* ⚠ 只更新 aspect 不夠:長寬比一變,「要退多遠才裝得下」也變了。
+             少了這一行,直向↔橫向轉一次棋盤就爆出畫面(0909 的病就是這樣長出來的)。 */
+        this.fitCamera();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     
