@@ -228,7 +228,7 @@ class App {
         const key = this.hintKey();
 
         if (this._hintCache && this._hintCache.key === key) {   // ②
-            this.paintHint(this._hintCache.move, statusEl);
+            this.paintHint(this._hintCache.move, statusEl, this._hintCache.info);
             return;
         }
 
@@ -237,36 +237,53 @@ class App {
         /* 先讓瀏覽器把「想一手…」畫出來再進搜尋:深度 3 是同步的,
            不讓出一幀的話畫面會整個凍住,看起來像當掉。 */
         setTimeout(() => {
-            let move = null;
+            let res = null;
             try {
-                move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), me, 'hint');
-                if (move && !this.gameLogic.isValidMove(          // ①
-                    move.from.row, move.from.col, move.to.row, move.to.col)) move = null;
+                /* 0908 起走 ai.hintMove(不再直接叫 calculateBestMove):
+                   每日殘局的勝利條件是「將死」,而對局引擎追求的是「子力 + 位置分」
+                   —— 這兩件事在殘局裡會分岔(0908 使用者實機退件:3 手殺的題
+                   照提示走到第 7 手還在走,還把車送去被將吃掉)。
+                   → hintMove 先窮舉必勝殺法,算不出才退回位置引擎。
+                   rootFilter 仍然把「這一手 UI 真的走得動嗎」的責任留給 gameLogic(規矩 ①)。 */
+                res = this.ai.hintMove(this.gameLogic.getBoardState(), me, {
+                    puzzle: this.gameMode === 'daily',
+                    rootFilter: (m) => this.gameLogic.isValidMove(          // ①
+                        m.from.row, m.from.col, m.to.row, m.to.col),
+                });
             } catch (e) {
-                console.error('[hint] calculateBestMove threw:', e);
+                console.error('[hint] hintMove threw:', e);
                 this._hintBusy = false;
                 statusEl.innerText = '💡 這一手算不出來,先自己走走看';   // ③ 出事
                 return;
             }
             this._hintBusy = false;
-            if (!move) { statusEl.innerText = '💡 找不到可走的棋了'; return; }   // ③ 無步
-            this._hintCache = { key, move };
-            this.paintHint(move, statusEl);                                      // ③ 有建議
+            if (!res || !res.move) { statusEl.innerText = '💡 找不到可走的棋了'; return; }   // ③ 無步
+            this._hintCache = { key, move: res.move, info: res };
+            this.paintHint(res.move, statusEl, res);                             // ③ 有建議
         }, 30);
     }
 
     /* 把提示畫到盤上:綠圈=要動的那顆、綠點=要去的地方。
        文字只講「哪一顆」,不自創座標記法 —— 這站其他地方都沒有記法,
        發明一套只是多一個要學的東西,而綠圈綠點已經指得很清楚了。 */
-    paintHint(move, statusEl) {
+    paintHint(move, statusEl, info) {
         const board = this.gameLogic.getBoardState();
         const piece = board[move.from.row][move.from.col];
         const eat = board[move.to.row][move.to.col];
         this.renderer.highlightSquare(move.from.row, move.from.col);   // 內含 clearHighlights
         this.renderer.highlightMoves([{ row: move.to.row, col: move.to.col }]);
+        /* 文案三態(誠實鐵則):算出必勝 / 算不出必勝 / 一般對局。
+           ★ 「這顆會被吃掉,是故意的」這一句就是 0908 退件那一句的答案——
+             使用者不是不能接受棄子,他是不知道那是故意的。 */
+        const tail = info && info.kind === 'mate'
+            ? `・這是 ${info.mateIn} 手必勝的第一手`
+                + (info.sacrifice ? '(這顆會被對方吃掉,是故意的——棄子換將位,照走就對了)' : '')
+            : (this.gameMode === 'daily'
+                ? '・⚠ 這個局面已經算不出必勝殺法(可能走偏了),這一手先改善局面;想從頭再來按「🔁 這題再來一次」'
+                : '');
         statusEl.innerText = `💡 建議走「${piece ? piece.name : '這顆'}」`
             + (eat ? `,吃掉對方的「${eat.name}」` : '')
-            + '(綠圈是它,綠點是要去的地方)';
+            + '(綠圈是它,綠點是要去的地方)' + tail;
     }
 
     /* 提示快取的鑰匙 = 盤面 + 輪到誰。用完整 type:'king'/'knight' 取首字都是 k 會撞。 */

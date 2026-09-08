@@ -70,25 +70,45 @@ await page.waitForTimeout(400);
 const h2 = await page.evaluate(() => JSON.stringify(window.app._hintCache.move));
 ok(h2 === h1.move, "同一個局面按兩次 ⇒ 同一手(不跳針)", h1.move + " vs " + h2);
 
-// 紅方照 AI 建議走(與真手指同一條 handleSquareClick 管線),黑方由遊戲自己回
+/* 紅方照 💡 提示走(與真手指同一條 handleSquareClick 管線),黑方由遊戲自己回。
+   ★★ 2026-09-08 改用「提示」而不是 calculateBestMove(red,'hard'),兩個理由:
+     ① 舊寫法**本來就會隨機紅**:hard 檔有 tieRandom(同分的手裡隨機挑),
+        node 實測從這一題開打「紅 hard vs 黑 hard」六局只贏 2~4 局 ——
+        也就是說這條斷言過不過一直是碰運氣的,只是以前運氣好。
+     ② 這一題是 3 手殺的殘局,使用者真正在做的事是「按提示、照它走」
+        (0908 退件原話:「我按照 AI 提示去走,結果車九被將吃了」)。
+        ⇒ 要守的就是**照提示走一定在規定手數內解掉**,不是「電腦自己打得贏嗎」。
+   ⇒ 現在是確定性的:提示會窮舉出必勝殺法,黑方怎麼應都躲不掉。 */
 const end = await page.evaluate(async () => {
   const a = window.app;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const hints = [];
   for (let i = 0; i < 60 && !a.gameLogic.isGameOver; i++) {
     if (a.gameLogic.currentPlayer !== "red") { await sleep(150); continue; }
-    const mv = a.ai.calculateBestMove(a.gameLogic.getBoardState(), "red", "hard");
+    const res = a.ai.hintMove(a.gameLogic.getBoardState(), "red", {
+      puzzle: a.gameMode === "daily",
+      rootFilter: (m) => a.gameLogic.isValidMove(m.from.row, m.from.col, m.to.row, m.to.col),
+    });
+    const mv = res && res.move;
     if (!mv) break;
+    hints.push(res.kind + (res.mateIn ? res.mateIn : ""));
     a.handleSquareClick(mv.from.row, mv.from.col);
     a.handleSquareClick(mv.to.row, mv.to.col);
     await sleep(700);
   }
   await sleep(1600);   // 等最後一手的動畫回呼把結算開出來
-  return { winner: a.gameLogic.winner, redMoves: a.redMoves,
+  return { winner: a.gameLogic.winner, redMoves: a.redMoves, hints,
+    mateIn: a.daily && a.daily.puzzle ? a.daily.puzzle.mateIn : null,
     winText: document.getElementById("winner-text").innerText,
     overlay: !document.getElementById("game-over-menu").classList.contains("hidden"),
     store: localStorage.getItem("xiangqi-daily-v1") };
 });
-ok(end.winner === "red", "紅方打得贏今天的題(用了 " + end.redMoves + " 步)", JSON.stringify(end));
+ok(end.winner === "red", "★ 照 💡 提示走,紅方贏了今天的題(用了 " + end.redMoves + " 步)", JSON.stringify(end));
+ok(end.mateIn != null && end.redMoves <= end.mateIn,
+  `★★ 照提示走在規定手數內解掉:${end.redMoves} 步 ≤ 標示的 ${end.mateIn} 手`
+  + `(退件那一局是 mateIn 3 的題「已走 7 步」還在走)`, JSON.stringify(end.hints));
+ok(end.hints.length > 0 && end.hints.every((k) => k.startsWith("mate")),
+  "★ 每一手提示都講得出「N 手必勝」(不是拿位置分硬猜一手)", end.hints.join(","));
 ok(end.overlay && end.winText.includes("題完成") && end.winText.includes("今天已解"),
   "結算畫面開了、帶今天進度", end.winText);
 ok(end.winText.includes("新紀錄"), "第一次打=顯示「新紀錄!」(閂鎖沒讓第二次觸發蓋掉)", end.winText);
