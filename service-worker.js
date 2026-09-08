@@ -13,7 +13,7 @@
 //       ⇒ 導覽請求一律走「index.html → ./ → 網路」的退路鏈。
 //    ③ 沒有執行期快取:install 那次沒抓到的檔,之後永遠不會補進快取。
 //       ⇒ 同源 GET 成功就順手存一份,任何一次成功連線之後就真的能離線。
-const CACHE_NAME = '3d-xiangqi-v17';
+const CACHE_NAME = '3d-xiangqi-v18';
 
 // 導覽退路(離線開 App 時拿它當殼層)
 const SHELL = './index.html';
