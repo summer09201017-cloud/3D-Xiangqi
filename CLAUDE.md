@@ -61,8 +61,15 @@
 ## 鐵則(務必守)
 
 - **改任何檔就 bump `service-worker.js` 的 `CACHE_NAME`**。不 bump = 舊使用者永遠拿舊版,而且沒有任何紅燈。
-- **部署是直傳**:`npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dirty=true`;
-  `git push` / `push.ps1` **不會**上線。線上驗收看內容不看狀態碼(帶 `?bust=`)。
+- **部署是兩步(0908 起改白名單,不再直傳整個資料夾)**:`npm run stage` → `npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true`;
+  `git push` / `push.ps1` **不會**上線。線上驗收**看內容不看狀態碼**(這站找不到的路徑一律回首頁 200 約 14 KB;`curl -s <url> | head -c 60` 看是真內容還是 `<!DOCTYPE html>`)。
+  為什麼改:原本 `pages deploy .` 是「整個資料夾照原樣搬上去」⇒ CLAUDE.md / package.json / test/ / scripts/ 全都在線上拿得到真內容。
+  那不是密鑰外洩(`.env` 沒進版控、repo 本來就公開),而是 ①內部筆記可能被搜尋引擎收錄 ②「預設全上」是留給未來的坑
+  (哪天有人在資料夾放草稿/備份/名單,會自動變成公開網址而且沒人發現)。`scripts/stage.mjs` 的 `SHIP` 白名單 = 12 個檔,
+  而且它會拿 `service-worker.js` 的 `ASSETS_TO_CACHE` 回頭對賬(漏檔就 exit 1 —— SW v15 起 install 是逐一 add + catch,漏檔會**靜默**不離線)。
+  ⚠⚠ **`.assetsignore` 對 `pages deploy` 完全無效**(0908 實測:加了之後上傳檔數 24 → 25,多的就是它自己,該擋的一個都沒少)。
+  那是 Workers `--assets` 的機制。姊妹站 `xiangqi-arena/scripts/stage.mjs` 檔頭早就寫過這一條。
+  ⚠ 部署完那一刻,**先前被抓取過的舊路徑會有幾分鐘的 CDN 殘留**(`CF-Cache-Status: HIT`,標頭是 `max-age=0, must-revalidate`)⇒ 隔一下再驗就對了。
 - **棋子貼字方向**:`createPieceMesh` 裡 `rotateX` 後面那行 `geometry.rotateZ(Math.PI / 2)` 不可刪;
   動到棋子幾何或貼圖就用真瀏覽器截圖看字(車/士/兵接近對稱,掃一眼看不出來)。
 - **💡 提示**:借引擎不借難度檔、同局面快取(`_hintCache`)、送出前過真規則。**0907 起還多兩道關卡**:吃子要①交換算到底子力有賺(`_captureGain > 0`)②比最好的安靜手多賺 `tradeMargin`(半個卒),否則建議走位;走 `_hintRoot()` 那條路,AI 對手不受影響。四鐵則在 memory
