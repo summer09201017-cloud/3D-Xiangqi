@@ -97,6 +97,15 @@ class App {
             const next = this.nextUnsolvedIndex();
             this.startGame('daily', 'easy', next >= 0 ? next : undefined);
         });
+        /* ⏭ 遊戲中的「換一題」(使用者 0909:「改成不想解這一題,也能換接下一題」)。
+           ⚠ 刻意**不寫任何紀錄**:被跳掉的那一題不算解過、也不記步數
+             (startGame 會把 redMoves 與 _dailySaved 歸零)。 */
+        const btnDailySkip = document.getElementById('btn-daily-skip');
+        if (btnDailySkip) btnDailySkip.addEventListener('click', () => {
+            if (this.gameMode !== 'daily' || !this.daily) return;
+            const next = this.nextDailyIndex();
+            if (next >= 0) this.startGame('daily', 'easy', next);
+        });
         const btnDailyRetry = document.getElementById('btn-daily-retry');
         if (btnDailyRetry) btnDailyRetry.addEventListener('click', () => {
             this.startGame('daily', 'easy', this.daily ? this.daily.index : undefined);
@@ -136,6 +145,24 @@ class App {
         return { done: this.daily.set.puzzles.filter((p) => solved[p.id]).length,
             total: this.daily.set.puzzles.length, solved };
     }
+    /* ⏭ 「這題先跳過,換下一題」的目標索引(2026-09-09 使用者:
+         「改成不想解這一題,也能換接下一題」)。
+       ★ 和 nextUnsolvedIndex() 的差別:那一支是**解完之後**接下一題用的,沒有未解的就回 -1
+         (代表今天做完了);這一支是**中途想換**,所以一定要給得出一題 —— 全都解過了就
+         單純換下一題(讓人可以重玩),不會卡在原地按了沒反應。
+       ★ 順序:從現在這題的**下一題**開始往後繞一圈,優先挑還沒解的
+         ⇒ 連按幾次會走過今天還沒解的每一題,而不是在兩題之間跳來跳去。 */
+    nextDailyIndex() {
+        if (!this.daily) return -1;
+        const list = this.daily.set.puzzles;
+        const solved = this.dailySolved(this.daily.key);
+        for (let k = 1; k <= list.length; k += 1) {
+            const i = (this.daily.index + k) % list.length;
+            if (!solved[list[i].id]) return i;
+        }
+        return (this.daily.index + 1) % list.length;   // 全解過了 ⇒ 單純下一題
+    }
+
     /** 還沒解、且不是現在這題的下一題索引(-1=沒有了) */
     nextUnsolvedIndex() {
         const prog = this.dailyProgress();
@@ -398,6 +425,9 @@ class App {
     
     updateUIInfo() {
         // 📅 每日殘局的狀態行(題名/日期/步數/提示)
+        // ⏭ 「換一題」只有每日模式看得到(對局模式沒有「下一題」的概念)
+        const skip = document.getElementById('btn-daily-skip');
+        if (skip) skip.classList.toggle('hidden', this.gameMode !== 'daily');
         const di = document.getElementById('daily-info');
         if (di) {
             di.classList.toggle('hidden', this.gameMode !== 'daily');
