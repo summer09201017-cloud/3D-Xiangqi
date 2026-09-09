@@ -80,7 +80,8 @@
 - 🩹 0903 同日修:首版抄到的範本端點是 `/p`(Worker 只認 `/api/ping`)、停留秒數參數寫 `s`(要 `t`)⇒ 打點全部 404、資料一筆沒進。
   📡 打點驗收要看**回應狀態碼**,不是「有沒有送出」(0903 實錘:端點寫 /p 而非 /api/ping,請求照樣送出、sendBeacon 不看回應、前端零紅燈,而 Worker 回 404、資料一筆不進);browser-check 已改成攔 `page.on("response")` 驗 200 並斷言「沒有任何打點被退回 404」。
   端到端證明:`/api/summary` 出現 `3d-xiangqi`(open=1、dwellAvg=95),KV 有 `g:`/`dw:`/`dl:` 三把鍵。
-- 線上 https://3d-xiangqi.pages.dev = 最新。**SW 現值 `3d-xiangqi-v16`、verTag v12**(本輪我推到 v13/v9,之後別場的「🏷 版本簡歷可收合」批次續推到 v14/v10);renderer 含 `rotateZ`;app.js 含 `sendBeacon`。
+- 線上 https://3d-xiangqi.pages.dev = 最新。**SW 現值 `3d-xiangqi-v19`、verTag v15**(0909 這一輪:🎨 配色/雙層棋子 + 🔍 setPixelRatio + 🗂 HUD 可收起 + 🚪 離開全螢幕/返回,`81e487c`,線上已驗);renderer 含 `rotateZ`、`pieceUpper`、`fillLight`;app.js 含 `sendBeacon`、`btn-hud-fold`。
+  ⚠ **本站的兩個版號是刻意分開的**:SW 的 `CACHE_NAME` 任何檔案有改就 bump,verTag 是「功能版」⇒ 兩者不相等不是漂移(姊妹站 arena 相反,它有 test/vertag.mjs 守兩者相等)。
 - 測試:`npm test` = **daily 251/0 + hint 6/0**;`node scripts/browser-check.mjs` 18/0(本機與線上都跑過;含攔 play-stats 請求驗開啟/完賽打點真的送出)。
 - 待做見 `roadmap.md`;給人讀的在 `README.md`;給另一台機的在 `讀我-HANDOFF.txt`。
 
