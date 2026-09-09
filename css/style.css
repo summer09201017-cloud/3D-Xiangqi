@@ -136,7 +136,31 @@ button:hover {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 #game-info h2 { display: none; }          /* 「遊戲進行中」沒有資訊,卻吃掉一行 + 20px margin */
+
+/* 🗂 可收起(2026-09-09 使用者退件:「選單太大,擋住棋盤,又不能收起來」)
+   收起時只剩 #hud-head 一行(現在輪到 + 展開鈕)⇒ 卡片高度從 ~150px 掉到 ~40px。
+   ⚠ 全域 `button { display:block; width:100% }` 會把折疊鈕撐成整行 ⇒ 這裡要明確蓋掉。 */
+#hud-head { display: flex; align-items: center; gap: 10px; }
+#hud-head #turn-indicator { flex: 1 1 auto; margin-bottom: 0; }
+#game-info #btn-hud-fold {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; width: 34px; min-height: 34px;
+    margin: 0; padding: 0;
+    font-size: 13px; line-height: 1;
+    border-radius: 8px;
+}
+#game-info #hud-body { margin-top: 4px; }
+#game-info.folded #hud-body { display: none; }
+
 #game-info #turn-indicator { font-size: .95rem; margin-bottom: 4px; }
+
+/* 🚪 「✕ 離開全螢幕」只在真的進了全螢幕(body.mfs-fs)或 iOS 的沉浸樣式(body.immersive)才出現。
+   ⚠ 由來:mfs-portrait-zoom 的樣式是 `body:not(.mfs-fs) #mfsFull{...}`
+     ⇒ 進了全螢幕那顆放大鈕**自己藏起來**,畫面上一個出口都沒有(使用者只能靠 Esc / 系統手勢)。
+     那個「藏起來」是刻意的(不壓到棋盤),所以不去改它,改成在 HUD 裡補一顆出口。 */
+#game-info #btn-exit-fs { display: none; }
+body.mfs-fs #game-info #btn-exit-fs,
+body.immersive #game-info #btn-exit-fs { display: inline-flex; }
 #game-info #game-status { font-size: .85rem; line-height: 1.45; min-height: 0; }
 #game-info #daily-info { font-size: 11.5px !important; margin-bottom: 4px !important; }
 #game-info .btn-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

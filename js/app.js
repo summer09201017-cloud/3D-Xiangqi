@@ -44,6 +44,46 @@ class App {
         const btnCamera = document.getElementById('btn-camera');
         if (btnCamera) btnCamera.addEventListener('click', () => this.renderer.resetCamera());
         document.getElementById('btn-back-to-main').addEventListener('click', () => this.showMainMenu());
+
+        /* 🗂 左上角 HUD 可收起 + ← 返回 + ✕ 離開全螢幕
+             (2026-09-09 使用者實機退件:「左上方選單太大,擋住棋盤,又不能收起來,
+              也沒有取消全螢幕或回到前一頁的選單」) */
+        const hud = document.getElementById('game-info');
+        const btnFold = document.getElementById('btn-hud-fold');
+        if (hud && btnFold) {
+            /* 收合狀態記在 localStorage:收過一次就一直收著(每局重按很煩)。
+               ⚠ localStorage 在 Safari 私密模式會**丟例外**(不是回 null)⇒ 讀寫都要包起來,
+                 不然這裡一炸,下面的返回鈕與離開全螢幕鈕就都不會被綁上(靜靜地整排失效)。 */
+            const KEY = 'xiangqi-hud-folded-v1';
+            let folded = false;
+            try { folded = localStorage.getItem(KEY) === '1'; } catch (e) { /* 忽略 */ }
+            const paintFold = () => {
+                hud.classList.toggle('folded', folded);
+                btnFold.textContent = folded ? '▼' : '▲';
+                btnFold.setAttribute('aria-expanded', String(!folded));
+                btnFold.title = folded ? '展開這張卡' : '收起這張卡(棋盤拿回整個畫面)';
+            };
+            btnFold.addEventListener('click', () => {
+                folded = !folded;
+                try { localStorage.setItem(KEY, folded ? '1' : '0'); } catch (e) { /* 忽略 */ }
+                paintFold();
+            });
+            paintFold();
+        }
+        const btnToMenu = document.getElementById('btn-to-menu');
+        if (btnToMenu) btnToMenu.addEventListener('click', () => this.showMainMenu());
+        const btnExitFs = document.getElementById('btn-exit-fs');
+        /* ★ 刻意**代按那顆 #mfsFull**,不自己呼叫 exitFullscreen ——
+             mfs-portrait-zoom 的腳本自己記著一個 `immersive` 變數,繞過它去退出的話
+             那個變數會和實際狀態脫鉤(iOS 沒有 fullscreenchange 事件更明顯:
+             沉浸樣式退不掉,而且再按放大鈕會反向)。代按它的 toggle 就永遠同步。
+           ⚠ 那顆鈕在全螢幕時 CSS 是 display:none —— 程式 `.click()` 對 display:none 的元素照樣有效
+             (使用者按的是我們這顆看得見的鈕,不是繞過可見性檢查)。 */
+        if (btnExitFs) btnExitFs.addEventListener('click', () => {
+            const mfs = document.getElementById('mfsFull');
+            if (mfs) mfs.click();
+            else if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        });
         // 📅 每日殘局:每天一題、全世界同一題(題目從日期算,零後端)
         const btnDaily = document.getElementById('btn-daily');
         if (btnDaily) btnDaily.addEventListener('click', () => this.startGame('daily'));
