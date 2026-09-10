@@ -483,3 +483,41 @@ window.onload = () => {
         window.__xqPingDone = () => ping('3d-xiangqi-done');
     } catch (_) { /* 統計壞掉不可以影響遊戲 */ }
 })();
+
+/* 🔄 拿新版(2026-09-10 使用者:「選單也沒有更新鈕」)——跟姊妹站 3d-chinese-chess 同一條:
+   這站 SW 是手寫的 cache-first(不是 vite-plugin-pwa 那套),install.js 早就走
+   `self.skipWaiting()` + `self.clients.claim()`,新版一裝好就會接管 —— 但**接管不等於畫面換新**,
+   分頁裡跑的還是舊的那份 JS/CSS,一定要 reload 才會真的看到新版。手機裝成 App 之後更明顯:
+   系統連網址列下拉都沒有,使用者完全沒有辦法自己觸發重新整理。
+   ⇒ 兩條路:①「🔄 更新」鈕(主選單 + 下棋中的 HUD 各一顆,共用同一支 forceRefresh)
+     ②聽 controllerchange 自動 reload 一次(reloaded 旗標防迴圈)、開啟時 + 切回前景 +
+       每 30 分鐘主動問一次有沒有新版。 */
+(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloaded) return;
+        reloaded = true;
+        window.location.reload();
+    });
+
+    const check = () => navigator.serviceWorker.getRegistration()
+        .then((reg) => reg && reg.update())
+        .catch(() => { /* 拿新版失敗不可以影響下棋 */ });
+    window.addEventListener('load', check);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+    setInterval(check, 30 * 60 * 1000);
+
+    window.forceRefresh = async () => {
+        try {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) await reg.update();
+        } catch (_) { /* 沒 SW / 離線也要能重整,往下走 */ }
+        window.location.reload();
+    };
+    for (const id of ['btn-refresh', 'btn-refresh-game']) {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', () => window.forceRefresh());
+    }
+})();
