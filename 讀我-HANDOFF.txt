@@ -1,7 +1,28 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-10(agape250 機・Sonnet 5)🔄 手機不必下滑也能拿到新版(SW v18,線上驗過)
+更新:2026-09-10(agape250 機・Sonnet 5)🩹 修好「更新鈕把版本/簡歷擠出畫面外」(SW v24,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-10(agape250 機・Sonnet 5)🩹 修好「更新鈕把版本/簡歷擠出畫面外」✅ 已上線(98902a3,v24)★★★★★
+  由來:上一輪加了「🔄 更新」鈕之後,使用者實機回報「版本號與簡歷被遮住了」。
+  病根(舊病被踩到臨界點,不是新 bug):`#ui-layer` 是 `100vh` 置中的 flex,`.panel`(主選單)
+    從一開始就沒有 `max-height`/`overflow-y` ——手機瀏覽器扣掉網址列的實際可用高度比 `100vh` 小,
+    卡片內容一旦比可用高度高,置中的卡上下都會超出畫面,而且**完全沒有捲軸**,超出的那截
+    (常是最下面的版本/簡歷)就直接看不到也捲不到。新增的更新鈕剛好把選單推過這條線。
+  改動(css/style.css):`.panel` 補 `max-height:100vh; overflow-y:auto;
+    -webkit-overflow-scrolling:touch`——卡片自己能捲,以後不管手機螢幕多矮、按鈕加到幾顆,
+    超出的部分永遠拉得到,不會再整截消失。
+  新增 scripts/check-menu-overflow.mjs:故意把視窗壓到比選單自然高度矮(390×420)逼出溢位,
+    驗「overflow-y 是 auto/scroll」+「捲到底真的看得到版本簡歷那一行」。★ 突變驗過會咬。
+  測試:npm test(daily 251・hint 6・sw 8)、browser-check 20/0、check-refresh 5/0、
+    check-menu-overflow 3/0,全綠。
+  部署:npm run stage → npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true;
+    線上驗過 sw v24(v23→v24)+ verTag v19 + `.panel` 的 `max-height:100vh` 都在。
+  📋 使用者同時提到「3D-Xiangqi 也需要有直式的選單,目前只有橫式選單」——已當面詢問這句話
+    是不是就是指這個「矮螢幕內容被擠出畫面」的病(這輪已經修了),還是另外要一個「直向/橫向
+    各自排版」的獨立版面(像 xiangqi-arena 的棋盤+側欄 grid 在窄螢幕會改成上下堆疊那種)。
+    使用者還沒回覆前不要自己猜著做,以免做錯方向。
+  git 實況(交接前真的問過 git):status --short 空、HEAD 98902a3、rev-list @{u}..HEAD = 0。
 
 ★★★★★ 2026-09-10(agape250 機・Sonnet 5)🔄 手機不必下滑也能拿到新版 ✅ 已上線(f317b9b,v18)★★★★★
   由來:使用者實機回報「選單也沒有更新鈕」——姊妹站 3d-chinese-chess 剛加完同樣的鈕,他順手也來這站找,沒找到。
