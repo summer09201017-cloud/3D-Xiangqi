@@ -154,7 +154,7 @@ class ChessRenderer {
              (桌機是按著拖曳看、有滑鼠精度,一起調慢會變成拖很多下才轉得動)。 */
         const coarsePointer = typeof window.matchMedia === 'function'
             && window.matchMedia('(pointer: coarse)').matches;
-        this.controls.rotateSpeed = coarsePointer ? 0.4 : 1.0;
+        this.controls.rotateSpeed = coarsePointer ? 0.2 : 1.0;   /* 0910 使用者第二次反映「降靈敏都過高」:0.4 再砍半到 0.2(150px 拖曳 ≈ 25° → 約 12.5°) */
         this.controls.panSpeed = coarsePointer ? 0.5 : 1.0;
         // 允許玩家水平 360 度任意旋轉觀看棋盤
         this.controls.minAzimuthAngle = -Infinity;
