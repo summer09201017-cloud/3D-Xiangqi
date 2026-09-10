@@ -1,5 +1,11 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
+## 現況(**2026-09-10,agape250 機**)
+
+- 💡 **修好「AI 提示後點綠點沒反應」(0910,SW v22)**:paintHint() 補上
+  `gameLogic.selectedPiece = {row,col}`(以前只畫圈畫點,handleInteraction 不知道有選棋子,
+  點綠點直接沒反應)。細節見 讀我-HANDOFF.txt 最新 ★ 段。
+
 ## 現況(**2026-09-09,agape250 機**)
 
 - 📐🖐🎥🎨 **相機裝不下棋盤 + 旋轉太靈敏 + HUD 擋棋盤 + 重置視角 + 舊站配色(0909,使用者實機退件三件)**:

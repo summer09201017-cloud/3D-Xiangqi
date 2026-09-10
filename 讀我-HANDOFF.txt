@@ -1,8 +1,21 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-07(HFP 機・Opus 5)🎯 💡 提示加「多賺半個卒才建議吃子」門檻 + 修好「提示只搜第 1 層」的 bug
-      (本輪推到 SW 3d-xiangqi-v13;之後別場的 fold-vertag 批次續推到 v14/verTag v10,線上驗過)
+更新:2026-09-10(agape250 機・Sonnet 5)💡 修好「AI 提示後點綠點沒反應」(SW v22,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-10(agape250 機・Sonnet 5)💡 修好「AI 提示後點綠點沒反應」✅ 已上線(9b996e4)★★★★★
+  由來:使用者拿當天早上的手機截圖體檢三站後,又親自到線上實測回報:「提示後,若點綠點,不會有反應」。
+  病根:paintHint() 以前只呼叫 renderer.highlightSquare()/highlightMoves() 畫綠圈綠點,從沒把
+    gameLogic.selectedPiece 設起來 —— handleInteraction() 靠這個欄位才知道「現在是誰被選走」,
+    點綠點時 selectedPiece 還是 null,直接回傳 null(沒反應)。
+  改動(js/app.js):paintHint() 同步把提示的那顆棋子在 gameLogic 裡也選起來
+    (`gameLogic.selectedPiece = { row: move.from.row, col: move.from.col }`),
+    點綠點就會真的觸發 move(點別的合法格也照樣走得動,玩家不一定要照提示走)。
+    姊妹站 xiangqi-arena 同一天同一條修法(同步套用)。
+  測試:npm test daily 251/0 + hint 6/0 + sw 8/0 全綠。
+  部署:npm run stage → npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true;
+    線上驗過 sw v22(v21→v22)+ selectedPiece 補丁都在。
+  git 實況(交接前真的問過 git):status --short 空、HEAD 9b996e4、rev-list @{u}..HEAD = 0。
 
 ★★★★★ 2026-09-07(HFP 機・Opus 5・session 0906-3D西洋棋棋字名)🎯 提示加「多賺半個卒才建議吃子」門檻 + 修好提示只搜第 1 層的 bug ✅ 已上線(9a14378)★★★★★
   由來:使用者在 3D 幻影西洋棋退件「提示叫我吃、吃完又被別的子吃回,等於交換被吃」⇒ 全棋類提示體檢。
