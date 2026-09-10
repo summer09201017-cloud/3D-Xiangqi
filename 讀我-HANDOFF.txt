@@ -1,7 +1,25 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-10(agape250 機・Sonnet 5)💡 修好「AI 提示後點綠點沒反應」(SW v22,線上驗過)
+更新:2026-09-10(agape250 機・Sonnet 5)🔄 手機不必下滑也能拿到新版(SW v18,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-10(agape250 機・Sonnet 5)🔄 手機不必下滑也能拿到新版 ✅ 已上線(f317b9b,v18)★★★★★
+  由來:使用者實機回報「選單也沒有更新鈕」——姊妹站 3d-chinese-chess 剛加完同樣的鈕,他順手也來這站找,沒找到。
+  跟 3d-chinese-chess 同一條病:整個畫面給了 3D 棋盤,頁面本身不能上下捲,瀏覽器的「下拉重新整理」
+  只在文件可捲動且捲到頂才會觸發,怎麼拉都沒反應;裝成 App 之後更明顯,連網址列下拉都沒有。
+  這站 SW 本來就是手寫 cache-first、早就 `skipWaiting()`+`clients.claim()`,新版一裝好就接管,
+  但接管不等於畫面換新,分頁裡跑的還是舊的那份 JS,一定要 reload 才會真的看到新版。
+  改動(js/app.js 檔尾新增獨立 IIFE,不動 App class 本體):
+    · 主選單 + 下棋中的 HUD 各加一顆「🔄 更新」(index.html #btn-refresh / #btn-refresh-game),
+      共用 window.forceRefresh():先 reg.update() 再 reload。
+    · 聽 controllerchange,新 SW 接管那一刻自動 reload 一次(reloaded 旗標防迴圈)。
+    · 開啟時 + 每次從背景切回前景 + 每 30 分鐘,主動問一次有沒有新版。
+  新增 scripts/check-refresh.mjs 驗三件:主選單看得到、下棋中的 HUD 也看得到、按下去真的呼叫了
+  registration.update()。★ 突變驗過會咬:拿掉按鈕接線 ⇒ 第三條當場紅。
+  測試:npm test(daily 251・hint 6・sw 8)、browser-check 20/0、check-refresh 5/0 全綠。
+  部署:npm run stage → npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true;
+    線上驗過 sw v23(v22→v23)+ verTag v18 + btn-refresh / btn-refresh-game 都在。
+  git 實況(交接前真的問過 git):status --short 空、HEAD f317b9b、rev-list @{u}..HEAD = 0。
 
 ★★★★★ 2026-09-10(agape250 機・Sonnet 5)💡 修好「AI 提示後點綠點沒反應」✅ 已上線(9b996e4)★★★★★
   由來:使用者拿當天早上的手機截圖體檢三站後,又親自到線上實測回報:「提示後,若點綠點,不會有反應」。

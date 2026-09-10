@@ -2,6 +2,9 @@
 
 ## 現況(**2026-09-10,agape250 機**)
 
+- 🔄 **手機不必下滑也能拿到新版(0910 下午,SW v23、verTag v18)**:主選單 + 下棋中的 HUD
+  各加一顆「🔄 更新」;聽 controllerchange 自動 reload;開啟/切前景/每 30 分鐘主動問新版。
+  細節見 讀我-HANDOFF.txt 最新 ★ 段。
 - 💡 **修好「AI 提示後點綠點沒反應」(0910,SW v22)**:paintHint() 補上
   `gameLogic.selectedPiece = {row,col}`(以前只畫圈畫點,handleInteraction 不知道有選棋子,
   點綠點直接沒反應)。細節見 讀我-HANDOFF.txt 最新 ★ 段。
