@@ -42,6 +42,15 @@ body {
     border: 2px solid #555;
     box-shadow: 0 0 20px rgba(0,0,0,0.8);
     pointer-events: auto; /* Enable clicks on panels */
+    /* 2026-09-10 補:#ui-layer 是 100vh 置中的 flex,這張卡從來沒有高度上限或捲動 fallback ——
+       手機瀏覽器扣掉網址列的實際可用高度比 100vh 小,只要卡片內容(標題+按鈕+簡歷)比可用
+       高度高一點點,置中的卡就會上下都超出畫面,而且**沒有捲軸、什麼提示都沒有**,超出的
+       那一截(常常是最下面的版本/簡歷)就直接看不到也捲不到。今天新增「🔄 更新」鈕正好把
+       主選單推過這條線(使用者反映「版本號與簡歷被遮住了」)——不是被誰蓋住,是被推出視窗外。
+       ⇒ 卡片自己能捲,以後不管手機螢幕多矮、按鈕加到幾顆,超出的部分永遠拉得到,不會消失。 */
+    max-height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 h1, h2 {
