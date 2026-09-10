@@ -1,7 +1,18 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-10(agape250 機・Sonnet 5)🩹 修好「更新鈕把版本/簡歷擠出畫面外」(SW v24,線上驗過)
+更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2 ✅ 已上線(30c9225→1fd5707,SW v25 / verTag v20)★★★★★
+  由來:使用者「3款象棋手機旋轉降靈敏都過高,請修正」——0909 才從預設 1.0 降到 0.4(劃 150px
+    約 25°),使用者實機再試仍嫌太靈敏。
+  改動(js/renderer.js):`rotateSpeed` 0.4 → **0.2**(約 13°)。三款象棋(本站 / xiangqi-arena /
+    3d-chinese-chess)同一天一起改成同一個值,桌機滑鼠手感不變。
+  測試:npm test(daily 251・hint 6・sw 8)全綠。
+  部署:npm run stage → npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true;
+    線上 curl 驗過 `js/renderer.js` 確實是 `rotateSpeed = coarsePointer ? 0.2 : 1.0`。
+  git 實況(交接前真的問過 git):status --short 空、HEAD 1fd5707(順手清掉誤入版控的
+    偵錯暫存檔 `diag-shot.mjs`)、rev-list @{u}..HEAD = 0。
 
 ★★★★★ 2026-09-10(agape250 機・Sonnet 5)🩹 修好「更新鈕把版本/簡歷擠出畫面外」✅ 已上線(98902a3,v24)★★★★★
   由來:上一輪加了「🔄 更新」鈕之後,使用者實機回報「版本號與簡歷被遮住了」。
