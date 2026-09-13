@@ -200,3 +200,32 @@ body.immersive #game-info #btn-exit-fs { display: inline-flex; }
   max-height: min(46vh, 340px); overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* ══════════ 📱 直向版面(2026-09-13,使用者拍板「獨立的直向版面」)══════════
+   由來:使用者 0910「3D-Xiangqi 也需要有直式的選單,目前只有橫式選單」,0913 選了「獨立的直向版面」
+   (不是只修矮螢幕擠出畫面那條)。
+   直向手機:棋盤是「寬度卡住」的,上下本來就剩一大片空白;左上角浮層 HUD 在直向反而壓到棋盤上緣。
+   ⇒ 直向時 HUD 改成**停在畫面底部的整寬控制列**(像 xiangqi-arena 的棋盤+側欄在窄螢幕改上下堆疊),
+     3D 舞台(#game-container)高度 = 100vh − HUD 高(app.js 用 ResizeObserver 量,寫進 --hud-h)
+     ⇒ 棋盤照剩下的區域 fit(renderer 的 viewSize 讀容器),HUD 永遠不蓋棋盤;收起 HUD(▲)棋盤就放大。
+   橫向完全不變(仍是左上角小 HUD 浮層,--hud-h 寫 0)。
+   ★ 100dvh:手機瀏覽器的 100vh 含被網址列蓋住的那截,bottom:0 的控制列會被網址列吃掉一半;
+     支援 dvh 的瀏覽器用 dvh 蓋掉,不支援的照舊 vh。 */
+@media (orientation: portrait) and (max-width: 768px) {
+  #ui-layer { height: 100dvh; }
+  #game-container { height: calc(100vh - var(--hud-h, 0px)); height: calc(100dvh - var(--hud-h, 0px)); }
+  #game-info {
+    top: auto; left: 0; right: 0; bottom: 0;
+    max-width: none; width: 100%;
+    border-radius: 14px 14px 0 0; border-width: 1px 0 0 0;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(0, 0, 0, 0.82);
+  }
+  #game-info #turn-indicator { font-size: 1.05rem; }
+  #game-info #game-status { font-size: .9rem; }
+  #game-info #daily-info { font-size: 12.5px !important; }
+  /* 鈕排三欄、拇指構得到(直向時螢幕窄,一列排不下七顆;橫向的 flex-wrap 在這裡會變成兩排半) */
+  #game-info .btn-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  #game-info .btn-row button { width: 100%; min-height: 44px; font-size: 14px; padding: 6px 4px; }
+  #game-info .btn-row button.hidden { display: none !important; }
+}

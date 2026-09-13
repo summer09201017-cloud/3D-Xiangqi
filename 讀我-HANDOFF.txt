@@ -1,7 +1,39 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
+更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)📱 直向手機獨立版面:HUD 停底部整寬控制列、舞台高 = 100vh − HUD(SW v26 / verTag v21)
+// 原 更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)📱 直向手機有自己的版面 ✅(SW v26 / verTag v21)★★★★★
+  由來:0910 使用者說「3D-Xiangqi 也需要有直式的選單,目前只有橫式選單」,當時問他是指「矮螢幕內容被擠出」
+    (已修)還是要「直向/橫向各自排版」的獨立版面;0913 使用者答:「還是要獨立的直向版面」。
+  查清楚直向到底哪裡不對:直向手機棋盤是**寬度卡住**的(fit 照寬算,上下剩一大片空白),而左上角
+    浮層 HUD 正好壓在棋盤上緣;主選單本身是直排的鈕,沒事。⇒ 要動的是**下棋中的 HUD 與舞台**。
+  改動(三檔一起,漏一檔就是「棋盤裝滿整個視窗、最下排躲在 HUD 底下、點擊偏一排」):
+    · css/style.css 尾段 `@media (orientation: portrait) and (max-width: 768px)`:
+      #game-info → `top:auto; bottom:0; left/right:0; width:100%`、圓角朝上、鈕 `.btn-row` 改三欄 grid
+      (每顆 ≥44px、整寬),#game-container 高 = `calc(100vh − var(--hud-h))`(再用 100dvh 蓋掉:
+      手機 100vh 含網址列那截,bottom:0 的控制列會被吃掉一半)。**橫向一個字都沒動**。
+    · js/app.js 尾段新 IIFE:ResizeObserver(高度)+ MutationObserver(只讀 class,不寫 —— chess5 0908
+      那個無窮迴圈是觀察者自己改被觀察屬性造成的)量 #game-info 真實高度 → `--hud-h`,再 rAF 發 resize
+      讓 renderer 重 fit。橫向 / HUD hidden(主選單、結算)寫 0。把手 window.__hudLayout(唯讀)。
+    · js/renderer.js 新增 viewSize()(#game-container 的 clientWidth/Height),initScene、fitCamera、
+      onWindowResize、**onMouseClick 的 NDC**(改對畫布的 rect 算)全改照容器。橫向容器 = 視窗,和以前逐位元一樣。
+  ⚠ 誠實一句:直向收起 HUD 棋盤**不會變大**(寬度卡住,多出來的高是空白);好處是控制列從棋盤旁邊拿開、
+    整張棋盤與所有鈕都在拇指構得到的地方。verTag 第一版寫了「收起就放大」,量出來 272→271px 一樣大,改掉了。
+  驗收:npm test(daily 251・hint 6・sw 8)全綠;browser-check 20/0;check-menu-overflow 3/0;check-refresh 5/0;
+    新 **check:portrait 22/0**(連跑兩次都綠):直向 HUD 貼底整寬 / 畫布底緣 ≤ HUD 頂緣 / 畫布高 = 視窗 − HUD /
+    棋盤四角投影全在畫布裡 / 三欄 grid ≥44px / 收起 HUD 變矮、畫布變高、棋盤不變小 / **真滑鼠點紅炮選得到**
+    (NDC 對畫布算)/ 橫向 HUD 仍左上小卡、畫布 = 視窗、--hud-h = 0。
+  ⚠ 三個驗收腳本自己踩的坑(不是產品 bug):
+    · window.app 在 window.onload 才建(CDN three.js 載完);DOMContentLoaded 就點 #btn-pvai ⇒ 沒人接,選單不切。
+    · SW 首次接管會自動 reload 一次(1~3 秒後),點鈕落在 reload 前後就被重整掉 ⇒ 先等
+      `performance.getEntriesByType('navigation')[0].type === 'reload'`。check-refresh 0910 全綠是運氣。
+    · check-refresh ③ 攔 reg.update 後**不要放行真的 update**(forceRefresh 接著 reload,計數器跟頁面一起消失)
+      ⇒ 回永不 resolve 的 promise,只驗「有沒有接線」。
+  部署:npm run stage → npx wrangler pages deploy .deploy --project-name=3d-xiangqi --branch main --commit-dirty=true;
+    線上驗:sw v26、css 有 `orientation: portrait`、verTag v21、CHECK_URL=線上 跑 check:portrait。
+  git 實況見本檔尾與 git log。
 
 ★★★★★ 2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2 ✅ 已上線(30c9225→1fd5707,SW v25 / verTag v20)★★★★★
   由來:使用者「3款象棋手機旋轉降靈敏都過高,請修正」——0909 才從預設 1.0 降到 0.4(劃 150px

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test/daily.mjs && node test/hint.mjs && node test/sw.mjs",
     "check": "node scripts/browser-check.mjs",
-    "stage": "node scripts/stage.mjs"
+    "stage": "node scripts/stage.mjs",
+    "check:portrait": "node scripts/check-portrait-layout.mjs"
   },
   "keywords": [],
   "author": "",

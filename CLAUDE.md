@@ -1,11 +1,29 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
+## 現況(**2026-09-13,HFP 機**)
+
+- 📱 **直向手機有獨立版面(0913,SW v26、verTag v21)**:使用者對 0910 那句「也需要有直式的選單,
+  目前只有橫式選單」拍板選「獨立的直向版面」。做法:
+  · `css/style.css` 尾段 `@media (orientation: portrait) and (max-width: 768px)`:`#game-info` 從左上角
+    浮層改成**停在畫面底部的整寬控制列**(鈕三欄 grid、≥44px),`#game-container` 高 =
+    `calc(100dvh − var(--hud-h))`。橫向完全不變。
+  · `js/app.js` 尾段 IIFE:ResizeObserver + MutationObserver(只讀 class)量 `#game-info` 真實高度
+    寫進 `--hud-h`,再 rAF 發 `resize` 讓 renderer 重 fit;橫向 / HUD 隱藏時寫 0。把手 `window.__hudLayout`。
+  · `js/renderer.js` 新增 `viewSize()`(讀 `#game-container` 的 clientWidth/Height),initScene /
+    fitCamera / onWindowResize / **onMouseClick 的 NDC** 全改照容器算 —— 照 window 算的話直向
+    棋盤會裝滿整個視窗、最下排躲在 HUD 底下,點擊也整體偏掉。
+  · ⚠ 直向是「寬度卡住」:收起 HUD 棋盤**不會**變大(多出來的是空白),verTag 沒寫「收起就放大」。
+  · 驗收 `npm run check:portrait`(scripts/check-portrait-layout.mjs,22 項:底部整寬 / 不重疊 /
+    畫布高 = 視窗 − HUD / 四角投影在畫布裡 / 三欄 ≥44px / 收起不變小 / 直向真點擊選得到炮 /
+    橫向 HUD 仍左上小卡且畫布 = 視窗)。⚠ 腳本要先等 SW 首次接管的自動 reload 做完再點鈕
+    (`performance.getEntriesByType('navigation')[0].type==='reload'`),不然隨機紅;check-refresh 同一條。
+
 ## 現況(**2026-09-10,agape250 機**)
 
 - 🩹 **修好「更新鈕把版本/簡歷擠出畫面外」(0910 傍晚,SW v24、verTag v19)**:`.panel` 補
   `max-height:100vh; overflow-y:auto`——`#ui-layer` 是 100vh 置中的 flex,卡片從沒處理過
   「內容比手機可用高度高」,超出的一截以前直接消失、沒有捲軸。細節見 讀我-HANDOFF.txt 最新 ★ 段。
-  📋 使用者另提「需要直式選單,目前只有橫式」——已在 HANDOFF 記待確認,不要自己猜著做。
+  📋 使用者另提「需要直式選單,目前只有橫式」——0913 拍板「獨立的直向版面」,已做(見上一段)。
 - 🔄 **手機不必下滑也能拿到新版(0910 下午,SW v23、verTag v18)**:主選單 + 下棋中的 HUD
   各加一顆「🔄 更新」;聽 controllerchange 自動 reload;開啟/切前景/每 30 分鐘主動問新版。
   細節見 讀我-HANDOFF.txt 最新 ★ 段。

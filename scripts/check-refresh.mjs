@@ -33,6 +33,8 @@ const box = await menuBtn.boundingBox();
 ok(box !== null && box.height > 0, "★ 真的看得見、按得到(有實際大小)", box ? JSON.stringify(box) : "沒有版面(可能被 hidden 蓋住)");
 
 console.log("\n── ② 下棋中的 HUD ──");
+/* ⚠ 先等 window.app(window.onload 才建;DOMContentLoaded 就點 ⇒ 沒人接、選單不切;0913 實錘) */
+await page.waitForFunction(() => !!window.app, null, { timeout: 30000 });
 await page.click("#btn-pvai");
 await page.click("#btn-ai-easy");
 await page.waitForSelector("#game-info:not(.hidden)", { timeout: 10000 });
@@ -46,8 +48,10 @@ await page.evaluate(() => new Promise((resolve) => {
     const wait = () => navigator.serviceWorker.getRegistration().then((reg) => {
         if (!reg) return setTimeout(wait, 100);
         window.__updateCalled = 0;
-        const orig = reg.update.bind(reg);
-        reg.update = (...a) => { window.__updateCalled++; return orig(...a); };
+        /* ⚠ 0913:攔到之後**不要**放行真的 update —— forceRefresh 是「update 完就 reload」,本機伺服器快到
+             reload 在 waitForFunction 第一次輪詢之前就發生,計數器跟著頁面一起消失 ⇒ 假紅(0910 全綠是運氣)。
+             回一個永不 resolve 的 promise,forceRefresh 就停在 await,計數留得住;這條只驗「有沒有接線」。 */
+        reg.update = () => { window.__updateCalled++; return new Promise(() => {}); };
         resolve();
     });
     wait();

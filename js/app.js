@@ -521,3 +521,32 @@ window.onload = () => {
         if (b) b.addEventListener('click', () => window.forceRefresh());
     }
 })();
+
+/* 📱 直向版面:HUD 停在畫面底部、3D 舞台高度 = 100vh − HUD 高(2026-09-13 使用者拍板「獨立的直向版面」)。
+   量 #game-info 的真實高度寫進 CSS 變數 --hud-h(css/style.css 的 portrait 段用它算 #game-container 高),
+   再對 renderer 發一次 resize 讓它照新的容器尺寸重 fit(renderer.viewSize 讀容器不讀 window)。
+   ⚠ 只在「直向且窄螢幕」才有值;橫向寫 0(HUD 仍是左上角浮層,不佔舞台)。
+   ⚠ HUD 隱藏(主選單 / 結算時)⇒ 0,舞台拿回整個畫面。
+   ⚠ 這裡只**讀** HUD 的 class,不寫任何屬性 —— chess5 0908 那個 MutationObserver 無窮迴圈是「觀察者自己改被觀察的屬性」造成的,這裡沒有那條路。 */
+(() => {
+    const hud = document.getElementById('game-info');
+    if (!hud) return;
+    const portrait = () => window.matchMedia('(orientation: portrait) and (max-width: 768px)').matches;
+    let last = -1;
+    const apply = () => {
+        const h = (portrait() && !hud.classList.contains('hidden'))
+            ? Math.round(hud.getBoundingClientRect().height) : 0;
+        if (h === last) return;
+        last = h;
+        document.documentElement.style.setProperty('--hud-h', h + 'px');
+        /* 等瀏覽器套完新高度再讓 renderer 量容器(同一幀量到的還是舊尺寸) */
+        requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (_) { /* noop */ } });
+    };
+    if (typeof ResizeObserver === 'function') new ResizeObserver(apply).observe(hud);
+    new MutationObserver(apply).observe(hud, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    apply();
+    /* 驗收把手(唯讀) */
+    window.__hudLayout = { get hudH() { return last; }, get portrait() { return portrait(); } };
+})();

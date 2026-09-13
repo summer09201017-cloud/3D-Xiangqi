@@ -114,13 +114,24 @@ class ChessRenderer {
         this.container.addEventListener('pointerdown', this.onMouseClick.bind(this), false);
     }
     
+    /* 📐 畫布的尺寸 = #game-container 的尺寸,不是 window(2026-09-13)。
+       直向版面把 HUD 停在畫面底部、容器高 = 100vh − HUD 高(css/style.css 的 portrait 段 + app.js 的 --hud-h)
+       ⇒ 相機 fit / 點擊反算 / setSize 都要照容器算;照 window 算的話棋盤會裝滿整個視窗、
+         最下排躲在 HUD 底下,點擊的 NDC 也會整體偏掉。橫向時容器 = 視窗,結果和以前完全一樣。 */
+    viewSize() {
+        const w = (this.container && this.container.clientWidth) || window.innerWidth;
+        const h = (this.container && this.container.clientHeight) || window.innerHeight;
+        return { w, h };
+    }
+
     initScene(initialBoardState) {
         // 1. Scene
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(this.PALETTE.bg);
-        
+
         // 2. Camera
-        const aspect = window.innerWidth / window.innerHeight;
+        const { w: vw0, h: vh0 } = this.viewSize();
+        const aspect = vw0 / vh0;
         this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
         /* 開場視角。★ 座標只寫一份(this.INITIAL_CAM)是為了「🎥 重置視角」放回**同一個**位置
            —— 抄第二份的那天兩邊就會漂(俯角 atan(90/60) ≈ 56°,和對局場同一個角度)。 */
@@ -137,7 +148,7 @@ class ChessRenderer {
            ⚠ resize 時要**再設一次**(見 onWindowResize):把視窗拖到不同 dpi 的螢幕、
              或瀏覽器縮放改變時 devicePixelRatio 會變,只改 setSize 的話又糊回去。 */
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(vw0, vh0);
         this.renderer.shadowMap.enabled = true;
         this.container.innerHTML = '';
         this.container.appendChild(this.renderer.domElement);
@@ -211,7 +222,7 @@ class ChessRenderer {
        ★ 只改**距離**,不改俯角:方向沿用 INITIAL_CAM 的 (0,-60,90) ⇒ 俯角維持 atan(90/60) ≈ 56°。 */
     fitCamera() {
         if (!this.camera) return;
-        const w = window.innerWidth, h = window.innerHeight;
+        const { w, h } = this.viewSize();     // 0913:照容器算,直向時容器 = 視窗 − 底部 HUD
         if (!w || !h) return;
         const aspect = w / h;
         const halfFov = (this.camera.fov * Math.PI) / 180 / 2;
@@ -488,8 +499,13 @@ class ChessRenderer {
     
     onMouseClick(event) {
         // 計算滑鼠在正規化設備座標中的位置 (-1 到 +1)
-        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        /* 0913:對**畫布**算,不對 window 算 —— 直向版面的畫布只佔視窗上半段(底下是 HUD),
+           照 window 算 y 會整體偏掉,點到的是隔壁排。橫向時畫布 = 視窗,結果不變。 */
+        const rect = (this.renderer && this.renderer.domElement)
+            ? this.renderer.domElement.getBoundingClientRect()
+            : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+        this.mouse.x = ((event.clientX - rect.left) / (rect.width || 1)) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / (rect.height || 1)) * 2 + 1;
         
         this.raycaster.setFromCamera(this.mouse, this.camera);
         
@@ -685,14 +701,15 @@ class ChessRenderer {
     
     onWindowResize() {
         if (!this.camera || !this.renderer) return;
-        this.camera.aspect = window.innerWidth / window.innerHeight;
+        const { w, h } = this.viewSize();     // 0913:照容器算(直向 = 視窗 − 底部 HUD)
+        this.camera.aspect = w / h;
         this.camera.updateProjectionMatrix();
         /* ⚠ 只更新 aspect 不夠:長寬比一變,「要退多遠才裝得下」也變了。
              少了這一行,直向↔橫向轉一次棋盤就爆出畫面(0909 的病就是這樣長出來的)。 */
         this.fitCamera();
         // ⚠ dpr 會變(換螢幕/瀏覽器縮放)⇒ 這裡也要重設,不然轉一次方向就糊回去
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(w, h);
     }
     
     animate(time) {
