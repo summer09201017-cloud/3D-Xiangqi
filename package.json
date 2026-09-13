@@ -4,7 +4,7 @@
   "description": "3D Chinese Chess PWA",
   "main": "index.js",
   "scripts": {
-    "test": "node test/daily.mjs && node test/hint.mjs && node test/sw.mjs",
+    "test": "node test/daily.mjs && node test/hint.mjs && node test/sw.mjs && node test/manifest.mjs",
     "check": "node scripts/browser-check.mjs",
     "stage": "node scripts/stage.mjs",
     "check:portrait": "node scripts/check-portrait-layout.mjs"

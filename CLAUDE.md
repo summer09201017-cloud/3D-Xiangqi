@@ -2,6 +2,12 @@
 
 ## 現況(**2026-09-13,HFP 機**)
 
+- 🔓 **manifest 解鎖橫式(0913 第二輪,SW v27、verTag v22)**:使用者看完 v21 回報「手機直式時也想要有主選單,
+  目前只有橫式才有主選單」—— 真因不是版面,是 `manifest.json` 的 `"orientation": "landscape"`:裝成 App 後系統
+  **強制轉橫**,直著拿永遠進不到主選單,v21 的直向版面在 App 裡也看不到。改成 `"any"`(姊妹站 xiangqi-arena 同值,
+  3d-chinese-chess 沒設)。新 `test/manifest.mjs` 守「不可以鎖回橫式」;`check:portrait` 加 ⑤ 直向主選單全在視窗內
+  + 線上 manifest 不鎖橫。⚠ 已裝的 App 要等瀏覽器更新 manifest(通常一天內)或移除重裝才解鎖。
+  ⚠ 橫向主選單本來就比 390 高、要捲(使用者截圖可見),這輪沒動;要改的話是把六顆鈕在橫向排兩欄。
 - 📱 **直向手機有獨立版面(0913,SW v26、verTag v21)**:使用者對 0910 那句「也需要有直式的選單,
   目前只有橫式選單」拍板選「獨立的直向版面」。做法:
   · `css/style.css` 尾段 `@media (orientation: portrait) and (max-width: 768px)`:`#game-info` 從左上角

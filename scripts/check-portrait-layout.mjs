@@ -8,6 +8,7 @@
 //      HUD 的鈕排成三欄、每顆 ≥ 44px 高。
 //   ② 按 ▲ 收起 HUD ⇒ HUD 變矮、畫布變高、棋盤不變小(直向是寬度卡住,不會更大;fit 有重算)。
 //   ③ 橫向 844×390 完全不變:HUD 還是左上角小卡(top/left < 30、寬 ≤ 380),畫布 = 整個視窗。
+//   ⑤ 直向主選單本身看得全(鈕都在視窗內、卡片不比螢幕寬)+ manifest 不鎖橫式(鎖了直著拿進不到主選單)。
 //   ④ 直向點棋盤要點得到:用相機把「紅方右邊的炮」投影成螢幕座標、真滑鼠點下去 ⇒ 它被選中
 //      (onMouseClick 改成對畫布算 NDC 的那一條 —— 照 window 算會偏掉,點到隔壁排)。
 // ★ 一律真點擊(page.click / page.mouse.click),不在 evaluate 裡呼叫 startGame。
@@ -141,6 +142,42 @@ console.log("\n── ③ 橫向完全不變:HUD 還是左上角小卡、畫布 
     ok(g.hudH === 0, "--hud-h 在橫向寫 0", String(g.hudH));
     ok(g.worst <= 1.0, "棋盤整張在畫布裡", String(g.worst));
     ok(errors.length === 0, "橫向整段零 pageerror", errors.join(" | "));
+    await page.close();
+}
+
+console.log("\n── ⑤ 直向主選單本身要進得去、看得全(0913 使用者:「手機直式時也想要有主選單」)──");
+{
+    /* 真因是 manifest 鎖橫式(裝成 App 直著拿被強制轉橫),不是選單版面;但既然解鎖了,直向的主選單
+       也要真的看得全:每顆鈕都在視窗內、卡片沒有比螢幕寬(390 是最常見的窄邊)。 */
+    const page = await browser.newPage({ viewport: PORTRAIT });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(URL + "/?v=" + Date.now(), { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => (performance.getEntriesByType("navigation")[0] || {}).type === "reload",
+        null, { timeout: 6000 }).catch(() => {});
+    await page.waitForFunction(() => !!window.app, null, { timeout: 30000 });
+    const menu = await page.evaluate(() => {
+        const panel = document.getElementById("main-menu").getBoundingClientRect();
+        const btns = [...document.querySelectorAll("#main-menu > button")]
+            .filter((b) => b.offsetParent !== null)
+            .map((b) => { const r = b.getBoundingClientRect(); return { id: b.id, top: r.top, bottom: r.bottom, left: r.left, right: r.right, h: r.height }; });
+        return { panel: { left: panel.left, right: panel.right, top: panel.top, bottom: panel.bottom, width: panel.width },
+            btns, win: { w: window.innerWidth, h: window.innerHeight }, scrollW: document.documentElement.scrollWidth };
+    });
+    ok(menu.btns.length >= 4, `主選單有 ${menu.btns.length} 顆看得見的鈕`, JSON.stringify(menu.btns.map((b) => b.id)));
+    ok(menu.panel.width <= menu.win.w && menu.panel.left >= -1 && menu.panel.right <= menu.win.w + 1,
+        "★ 直向主選單卡片沒有比螢幕寬", JSON.stringify(menu.panel));
+    ok(menu.btns.every((b) => b.top >= 0 && b.bottom <= menu.win.h + 1),
+        "★★ 鈕全部在視窗內(不用捲就看得到、按得到)", JSON.stringify(menu.btns));
+    ok(menu.btns.every((b) => b.h >= 40), "每顆鈕 ≥ 40px 高", JSON.stringify(menu.btns.map((b) => b.h)));
+    ok(menu.scrollW <= menu.win.w, "頁面沒有橫向溢出", String(menu.scrollW));
+    /* manifest 不鎖橫式:CHECK_URL=線上 跑時這條就是在驗線上那份 manifest */
+    const man = await page.evaluate(async () => {
+        try { const r = await fetch("manifest.json?v=" + Date.now(), { cache: "no-store" }); return await r.json(); } catch (e) { return { error: String(e) }; }
+    });
+    ok(man && man.orientation !== "landscape" && man.orientation !== "landscape-primary",
+        `★★ manifest 沒鎖橫式(orientation=${JSON.stringify(man && man.orientation)})—— 鎖了直著拿就進不到主選單`, JSON.stringify(man && (man.error || man.orientation)));
+    ok(errors.length === 0, "直向主選單零 pageerror", errors.join(" | "));
     await page.close();
 }
 
