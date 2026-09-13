@@ -229,3 +229,18 @@ body.immersive #game-info #btn-exit-fs { display: inline-flex; }
   #game-info .btn-row button { width: 100%; min-height: 44px; font-size: 14px; padding: 6px 4px; }
   #game-info .btn-row button.hidden { display: none !important; }
 }
+
+/* ══════════ 🗂 橫式矮螢幕(手機轉橫)的主選單:鈕排兩欄、整張不用捲(2026-09-13)══════════
+   由來:使用者截圖(844×390):主選單 h1 + 五顆直排鈕 + 連結 + 版本簡歷比 390 高,最下面兩顆被切掉、要往下捲;
+   他拍板「可以把橫式的鈕排成兩欄」。只在 orientation:landscape 且 max-height:500px 生效 —— 直向與桌機一字不動。
+   算過:14+45(h1)+8+3 排×(44+8)+30(連結)+22(簡歷)+14 ≈ 290 < 390,五顆鈕(2+2+1)三排就夠。
+   ⚠ #btn-install / #btn-refresh 有行內 margin-top(20px / 8px),grid 裡要用 !important 蓋掉,不然那兩顆會多出一截。 */
+@media (orientation: landscape) and (max-height: 500px) {
+  #main-menu { padding: 14px 22px; width: min(92vw, 640px); }
+  #main-menu h1 { font-size: 1.45rem; margin-bottom: 8px; }
+  #main-menu .menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #main-menu .menu-grid > button { margin: 0 !important; min-height: 44px; font-size: 16px; padding: 8px 10px; }
+  #main-menu > p { margin-top: 8px !important; }
+  #main-menu .ver-fold { margin-top: 4px; }
+  #main-menu .ver-fold > summary { padding: 2px; }
+}

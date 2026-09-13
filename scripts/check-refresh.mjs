@@ -24,6 +24,10 @@ const ok = (cond, msg, note = "") => {
 
 const page = await browser.newPage();
 await page.goto(URL + "?v=" + Date.now(), { waitUntil: "domcontentloaded" });
+/* ⚠ SW 首次接管會自動 reload 一次(app.js controllerchange);不等它做完,後面的 waitForFunction 可能跨在 reload 上
+     (0913 實測一次 30 秒逾時)。先等「這一頁是 reload 進來的」,6 秒沒等到就放行(和 check-portrait-layout 同一條)。 */
+await page.waitForFunction(() => (performance.getEntriesByType("navigation")[0] || {}).type === "reload",
+    null, { timeout: 6000 }).catch(() => {});
 await page.waitForFunction(() => "serviceWorker" in navigator, null, { timeout: 10000 }).catch(() => {});
 
 console.log("\n── ① 主選單 ──");

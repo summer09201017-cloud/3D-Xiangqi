@@ -8,6 +8,7 @@
 //      HUD 的鈕排成三欄、每顆 ≥ 44px 高。
 //   ② 按 ▲ 收起 HUD ⇒ HUD 變矮、畫布變高、棋盤不變小(直向是寬度卡住,不會更大;fit 有重算)。
 //   ③ 橫向 844×390 完全不變:HUD 還是左上角小卡(top/left < 30、寬 ≤ 380),畫布 = 整個視窗。
+//   ⑥ 橫式主選單鈕排兩欄、整張不用捲(0913 使用者截圖最下面兩顆被切掉、拍板排兩欄)+ 開場俯角 64°(在 ① 量)。
 //   ⑤ 直向主選單本身看得全(鈕都在視窗內、卡片不比螢幕寬)+ manifest 不鎖橫式(鎖了直著拿進不到主選單)。
 //   ④ 直向點棋盤要點得到:用相機把「紅方右邊的炮」投影成螢幕座標、真滑鼠點下去 ⇒ 它被選中
 //      (onMouseClick 改成對畫布算 NDC 的那一條 —— 照 window 算會偏掉,點到隔壁排)。
@@ -82,6 +83,10 @@ console.log("\n── ① 直向:HUD 在底部整寬、畫布在它上面、棋�
 {
     const { page, errors } = await openGame(PORTRAIT);
     const g = await geo(page);
+    /* 🎥 俯角 = 64°(0913 使用者:「棋盤朝上,順時鐘 8 度,接近 2D 視角」;原 atan(90/60)=56.3°)。
+       本站 z 朝上、棋盤在 XY 面 ⇒ 俯角 = atan2(cam.z, hypot(cam.x, cam.y))(注視原點)。量真的相機,不量常數。 */
+    const elev = await page.evaluate(() => { const c = window.app.renderer.camera.position; return Math.atan2(c.z, Math.hypot(c.x, c.y)) * 180 / Math.PI; });
+    ok(Math.abs(elev - 64.3) < 1.0, `★ 開場俯角 64°(量到 ${elev.toFixed(1)}°;0913 前是 56.3°)`, String(elev));
     ok(Math.abs(g.hud.bottom - g.win.h) <= 2, "★ HUD 貼著畫面底部", JSON.stringify(g.hud));
     ok(g.hud.width >= g.win.w - 2 && g.hud.left <= 1, "★ HUD 整寬(不是左上角小卡)", JSON.stringify(g.hud));
     ok(g.cv.top <= 1, "畫布從畫面頂端開始", JSON.stringify(g.cv));
@@ -158,7 +163,7 @@ console.log("\n── ⑤ 直向主選單本身要進得去、看得全(0913 使
     await page.waitForFunction(() => !!window.app, null, { timeout: 30000 });
     const menu = await page.evaluate(() => {
         const panel = document.getElementById("main-menu").getBoundingClientRect();
-        const btns = [...document.querySelectorAll("#main-menu > button")]
+        const btns = [...document.querySelectorAll("#main-menu button")]
             .filter((b) => b.offsetParent !== null)
             .map((b) => { const r = b.getBoundingClientRect(); return { id: b.id, top: r.top, bottom: r.bottom, left: r.left, right: r.right, h: r.height }; });
         return { panel: { left: panel.left, right: panel.right, top: panel.top, bottom: panel.bottom, width: panel.width },
@@ -178,6 +183,33 @@ console.log("\n── ⑤ 直向主選單本身要進得去、看得全(0913 使
     ok(man && man.orientation !== "landscape" && man.orientation !== "landscape-primary",
         `★★ manifest 沒鎖橫式(orientation=${JSON.stringify(man && man.orientation)})—— 鎖了直著拿就進不到主選單`, JSON.stringify(man && (man.error || man.orientation)));
     ok(errors.length === 0, "直向主選單零 pageerror", errors.join(" | "));
+    await page.close();
+}
+
+console.log("\n── ⑥ 橫式主選單:鈕排兩欄、整張不用捲(0913 使用者截圖:最下面兩顆被切掉)──");
+{
+    const page = await browser.newPage({ viewport: LANDSCAPE });
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e)));
+    await page.goto(URL + "/?v=" + Date.now(), { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => (performance.getEntriesByType("navigation")[0] || {}).type === "reload",
+        null, { timeout: 6000 }).catch(() => {});
+    await page.waitForFunction(() => !!window.app, null, { timeout: 30000 });
+    const m = await page.evaluate(() => {
+        const el = document.getElementById("main-menu");
+        const r = el.getBoundingClientRect();
+        const btns = [...el.querySelectorAll(".menu-grid > button")].filter((b) => b.offsetParent !== null)
+            .map((b) => { const q = b.getBoundingClientRect(); return { id: b.id, top: q.top, bottom: q.bottom, left: q.left, h: q.height }; });
+        const cols = new Set(btns.map((b) => Math.round(b.left))).size;
+        return { scrollH: el.scrollHeight, clientH: el.clientHeight, top: r.top, bottom: r.bottom, win: window.innerHeight,
+            btns, cols, grid: getComputedStyle(el.querySelector(".menu-grid")).gridTemplateColumns };
+    });
+    ok(m.scrollH <= m.clientH + 1, `★★ 橫式主選單不用捲(scrollHeight ${m.scrollH} ≤ clientHeight ${m.clientH})`, JSON.stringify(m));
+    ok(m.top >= -1 && m.bottom <= m.win + 1, "★ 整張卡片在視窗內(上下都沒被切)", JSON.stringify({ top: m.top, bottom: m.bottom, win: m.win }));
+    ok(m.cols === 2, `★ 鈕排成兩欄(量到 ${m.cols} 欄)`, m.grid);
+    ok(m.btns.length >= 4 && m.btns.every((b) => b.top >= 0 && b.bottom <= m.win + 1), "★★ 每顆鈕都在視窗內(截圖裡被切掉的那兩顆也在)", JSON.stringify(m.btns));
+    ok(m.btns.every((b) => b.h >= 44), "每顆鈕 ≥ 44px 高", JSON.stringify(m.btns.map((b) => b.h)));
+    ok(errors.length === 0, "橫式主選單零 pageerror", errors.join(" | "));
     await page.close();
 }
 

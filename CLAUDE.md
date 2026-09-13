@@ -2,6 +2,12 @@
 
 ## 現況(**2026-09-13,HFP 機**)
 
+- 🎥🗂 **俯角 +8°(56.3→64.3°)+ 橫式主選單兩欄(0913 第三輪,SW v28、verTag v23)**:使用者「棋盤朝上,順時鐘 8 度,
+  接近 2D 視角」⇒ `js/renderer.js` `INITIAL_CAM` (0,-60,90) → **(0,-43.3,90)**(只有方向有意義,fitCamera 沿它重算距離;
+  攤平公式不隨角度變,角度越陡餘裕只會更夠)。從此和對局場(56°)不同角。使用者拍板「橫式的鈕排成兩欄」⇒ index.html
+  五顆鈕包進 `.menu-grid`,`css/style.css` 尾段 `@media (orientation:landscape) and (max-height:500px)` 排兩欄 + 縮 h1/padding,
+  整張選單在 844×390 不用捲(直向、桌機一字不動;⚠ 兩顆鈕有行內 margin-top,grid 裡用 !important 蓋)。
+  `check:portrait` ① 加「開場俯角 64° 量真相機」、新 ⑥ 橫式主選單 scrollHeight ≤ clientHeight / 兩欄 / 每顆鈕在視窗內。
 - 🔓 **manifest 解鎖橫式(0913 第二輪,SW v27、verTag v22)**:使用者看完 v21 回報「手機直式時也想要有主選單,
   目前只有橫式才有主選單」—— 真因不是版面,是 `manifest.json` 的 `"orientation": "landscape"`:裝成 App 後系統
   **強制轉橫**,直著拿永遠進不到主選單,v21 的直向版面在 App 裡也看不到。改成 `"any"`(姊妹站 xiangqi-arena 同值,

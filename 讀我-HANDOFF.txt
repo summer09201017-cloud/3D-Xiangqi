@@ -1,8 +1,21 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)🔓 manifest 解鎖橫式(直著拿終於進得了主選單;SW v27 / verTag v22)+ 📱 直向手機獨立版面:HUD 停底部整寬控制列、舞台高 = 100vh − HUD(SW v26 / verTag v21)
+更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)🎥 俯角 +8°(56→64°,「接近 2D」)+ 🗂 橫式主選單兩欄不用捲(SW v28 / verTag v23)+ 🔓 manifest 解鎖橫式(SW v27 / v22)+ 📱 直向獨立版面(SW v26 / v21)
 // 原 更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-13 第三輪(HFP 機・Fable 5.1・0913-take-over 場)🎥 俯角 +8° + 🗂 橫式主選單兩欄 ✅(SW v28 / verTag v23)★★★★★
+  由來:使用者「棋盤朝上,順時鐘 8 度,接近 2D 視角,與橫式主選單本來就比螢幕高、要往下捲…要,可以把橫式的鈕排成兩欄」。
+    (「朝上順時鐘 N 度」是他一貫的說法 = 俯角 +N,0910 在 3d-chinese-chess 就是這樣用的。)
+  ■ 🎥 俯角:js/renderer.js INITIAL_CAM (0,-60,90) → **(0,-43.3,90)** ⇒ atan(90/43.3) = 64.3°(原 56.3°)。只有方向有意義,
+    fitCamera 沿它重算距離;攤平公式不隨角度變,角度越陡投影越接近攤平值 ⇒ 1.06 餘裕只會更夠(check ① worst 仍 ≤ 1)。
+    從此和對局場(56°)不同角 —— CLAUDE.md 那句「和對局場同角度」已更正。
+  ■ 🗂 橫式主選單:index.html 五顆鈕包進 `.menu-grid`;css 尾段 `@media (orientation:landscape) and (max-height:500px)`
+    排兩欄(2+2+1)、h1 1.45rem、padding 14/22、卡片 min(92vw,640px);算過 ≈ 290px < 390。直向、桌機一字不動。
+    ⚠ #btn-install / #btn-refresh 帶行內 margin-top(20 / 8px),grid 裡要 `margin:0 !important` 蓋掉。
+  ■ 驗收:npm test(daily 251・hint 6・sw 8・manifest 4);check:portrait ① 加「開場俯角 64° 量真相機」、新 ⑥ 橫式主選單
+    scrollHeight ≤ clientHeight / 整張在視窗內 / 兩欄 / 每顆鈕在視窗內且 ≥44px;browser-check / menu-overflow / refresh 照舊。
+  ■ 部署同前(stage → wrangler pages deploy);線上驗 sw v28、verTag v23、css 有 `.menu-grid`、CHECK_URL 跑 check:portrait。
 
 ★★★★★ 2026-09-13 第二輪(HFP 機・Fable 5.1・0913-take-over 場)🔓 manifest 解鎖橫式 ✅(SW v27 / verTag v22)★★★★★
   由來:v21 上線後使用者貼兩張橫式主選單截圖:「想要手機直式時,也想要有主選單,因目前是只有橫式才有主選單,
