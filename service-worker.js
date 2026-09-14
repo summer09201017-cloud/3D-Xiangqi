@@ -10,17 +10,19 @@
 //       因為那時通常有網路)。⇒ 改成逐一 add + catch,抓不到的略過,其他照樣進快取。
 //    ② fetch 沒有「導覽請求(navigate)的退路」:PWA 的 start_url 帶 ?utm / ?src 之類的
 //       查詢字串時 caches.match 就 miss(預設不 ignoreSearch)⇒ 落到 network ⇒ 離線就死。
-//       ⇒ 導覽請求一律走「index.html → ./ → 網路」的退路鏈。
+//       ⇒ 導覽請求一律走「快取 → 網路 → 殼層 ./」的退路鏈。
+// ★★★ 2026-09-14 全艦隊修「index.html 進快取名單」這顆地雷(3D-Chess 幻影版實錘,補丁 static-pwa-ship/patches/patch-sw-index.mjs):
+//    Cloudflare Pages 把 /index.html 308 轉到 / ⇒ 名單裡有 './index.html' 的話,install 存進去的是 redirected:true 的回應,
+//    導覽拿到它瀏覽器直接拒收 ⇒ ERR_FAILED;每次 bump SW 重踩一次。⇒ 名單與 SHELL 一律只認 './',永遠不要再把 index.html 加回名單。
 //    ③ 沒有執行期快取:install 那次沒抓到的檔,之後永遠不會補進快取。
 //       ⇒ 同源 GET 成功就順手存一份,任何一次成功連線之後就真的能離線。
-const CACHE_NAME = '3d-xiangqi-v29';
+const CACHE_NAME = '3d-xiangqi-v30';
 
 // 導覽退路(離線開 App 時拿它當殼層)
-const SHELL = './index.html';
+const SHELL = './';
 
 const ASSETS_TO_CACHE = [
   './',
-  './index.html',
   './css/style.css',
   './js/app.js',
   './js/renderer.js',
@@ -76,7 +78,7 @@ self.addEventListener('fetch', (event) => {
       try {
         return keepCopy(request, await fetch(request));
       } catch (_) {
-        // ③ 殼層退路:index.html → ./
+        // ③ 殼層退路:./(0914 起不再用 index.html,見檔頭 ★★★)
         return (await cache.match(SHELL)) || (await cache.match('./')) || Response.error();
       }
     })());

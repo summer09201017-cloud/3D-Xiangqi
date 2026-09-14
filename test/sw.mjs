@@ -83,8 +83,13 @@ ok(keys.length >= 10,
   `★★ CDN 抓不到時,其餘資產仍然進了快取(${keys.length} 筆)` +
   '—— 舊版的 addAll 這裡是 0 筆,然後離線就 ERR_FAILED',
   keys.length + ' 筆:' + keys.slice(0, 3).join(' '));
-ok(keys.some((k) => k.includes('index.html')),
-  '★ 殼層 index.html 在快取裡(從主畫面開 App 靠它)');
+ok(keys.some((k) => k === './'),
+  '★ 殼層 ./ 在快取裡(從主畫面開 App 靠它)');
+// 0914 全艦隊:Cloudflare Pages 把 /index.html 308 到 / ⇒ 名單裡有 index.html 就會存到 redirected 回應,
+// 導覽拿到它 = ERR_FAILED(3D-Chess 實錘)。名單、SHELL 常數、任何 match() 都不准再出現 index.html(註解不算)。
+const code = src.replace(/^\s*\/\/.*$/gm, '');
+ok(!keys.some((k) => /index\.html/.test(k)) && !/(['"])(\.\/|\/)?index\.html\1/.test(code),
+  '★★ 快取名單 / 退路常數 / match() 都沒有 index.html(CF 會 308 ⇒ redirected 回應 ⇒ 裝成 App 開就 ERR_FAILED)');
 
 console.log('—— ② 離線導覽要有退路 ——');
 ok(/request\.mode === ['"]navigate['"]/.test(src),
@@ -92,7 +97,7 @@ ok(/request\.mode === ['"]navigate['"]/.test(src),
 ok(/ignoreSearch:\s*true/.test(src),
   '★ 導覽比對忽略查詢字串(start_url 帶 ?src=pwa 之類也命中)');
 ok(/SHELL|index\.html['"]\)\)\s*\|\|/.test(src),
-  '★ 抓不到網路時退回殼層(index.html → ./)');
+  '★ 抓不到網路時退回殼層(SHELL = ./)');
 
 console.log('—— ③ 執行期快取(安裝時沒抓到的,之後要補上)——');
 ok(/cache\.put\(/.test(src) || /keepCopy/.test(src),

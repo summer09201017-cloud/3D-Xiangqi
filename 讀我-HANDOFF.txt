@@ -1,8 +1,16 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)↩️ 俯角改回 56.3°(64° 使用者否決;SW v29 / verTag v24)+ 🗂 橫式主選單兩欄不用捲(v23)+ 🔓 manifest 解鎖橫式(v22)+ 📱 直向獨立版面(v21)
+更新:2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷(全艦隊六棋類站同修;SW v30 / verTag v25)
+// 原 更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)↩️ 俯角改回 56.3°(64° 使用者否決;SW v29 / verTag v24)+ 🗂 橫式主選單兩欄不用捲(v23)+ 🔓 manifest 解鎖橫式(v22)+ 📱 直向獨立版面(v21)
 // 原 更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷 ✅(SW v30 / verTag v25)★★★★★
+  由來:3D-Chess 幻影版實機「裝成 App 打開就無法連上 / ERR_FAILED」。病根:Cloudflare Pages 把 /index.html 308 到 /,
+    SW 名單裡有 './index.html' ⇒ install 存到 redirected:true 的回應 ⇒ 導覽拿到它瀏覽器拒收;每次 bump SW 重踩一次。使用者拍板全艦隊修。
+  改動:service-worker.js ASSETS_TO_CACHE 拔 './index.html'、SHELL './index.html' → './'、v29→v30(補丁 static-pwa-ship/patches/patch-sw-index.mjs --cf --write);
+    test/sw.mjs 原本守「index.html 在快取裡」反過來改守「./ 在快取裡 + 名單/退路/match() 零 index.html」;verTag v25 白話一段;manifest 早已是 ./ 沒動。
+  驗:npm test 270 過(daily 251 / hint 6 / sw 9 / manifest 4);線上 check-sw-nav-fleet.mjs 🟢(開 /index.html 兩次不 ERR_FAILED、快取無 redirected、離線回殼層)。
 
 ★★★★★ 2026-09-13 第四輪(HFP 機・Fable 5.1・0913-take-over 場)↩️ 俯角改回 56.3° ✅(SW v29 / verTag v24)★★★★★
   由來:使用者實機看過第三輪的 64° 後:「3D-Xiangqi,棋盤角度恢復上一版的角度,56.3 度,新版角度,不 ok」。

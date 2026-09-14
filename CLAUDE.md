@@ -1,7 +1,11 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
-## 現況(**2026-09-13,HFP 機**)
+## 現況(**2026-09-14,HFP 機**)
 
+- 🩹 **拔掉「index.html 進 SW 快取名單」地雷(0914 全艦隊,SW v30、verTag v25)**:Cloudflare Pages 把 `/index.html` 308 到 `/`,
+  名單裡有 `./index.html` ⇒ install 存到 redirected:true 的回應 ⇒ 導覽拿到它就 ERR_FAILED(3D-Chess 幻影版實錘「裝成 App 打開就無法連上」),
+  每次 bump SW 重踩。改動:`ASSETS_TO_CACHE` 拔 `./index.html`、`SHELL` 改 `./`;test/sw.mjs 改守「快取有 `./`、名單/退路/match() 零 index.html」。
+  補丁來源 skill `static-pwa-ship/patches/patch-sw-index.mjs`(--cf --write);線上重演 `scripts/check-sw-nav-fleet.mjs` 🟢。**永遠不要把 index.html 加回名單。**
 - ↩️ **俯角改回 56.3°(0913 第四輪,SW v29、verTag v24)**:第三輪照「棋盤朝上,順時鐘 8 度,接近 2D」改 64.3°,使用者實機
   看過後說「棋盤角度恢復上一版的角度 56.3 度,新版角度不 OK」⇒ `INITIAL_CAM` 回 (0,-60,90)。**這一站的角度使用者已親自否決過
   「更陡」一次,再動之前先問。** 兩欄主選單保留。check:portrait ① 改量 56.3°。

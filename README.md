@@ -32,6 +32,9 @@ npx wrangler pages deploy . --project-name=3d-xiangqi --branch main --commit-dir
 ```
 
 - 改任何檔都要 bump `service-worker.js` 的 `CACHE_NAME`(cache-first,不 bump 舊使用者永遠拿舊版)。
+- ⚠ **SW 快取名單與退路常數不可以有 `index.html`(0914 全艦隊修,SW v30)**:Cloudflare Pages 把 `/index.html` 308 到 `/`,
+  名單裡有它 install 就存到 redirected 回應,裝成 App 打開就 ERR_FAILED(3D-Chess 實錘)。一律只認 `./`;test/sw.mjs 守著。
+  補丁來源:skill `static-pwa-ship/patches/patch-sw-index.mjs`;線上重演 `scripts/check-sw-nav-fleet.mjs <url>` 要 🟢。
 - 線上驗收**看內容**不看狀態碼,帶 `?bust=`:
   `curl -s "https://3d-xiangqi.pages.dev/service-worker.js?bust=1" | grep -o "3d-xiangqi-v[0-9]*"`
 
