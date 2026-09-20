@@ -39,10 +39,8 @@ class App {
         // 💡 AI 提示:借同一支引擎,從「玩家這一邊」算一手
         const btnHint = document.getElementById('btn-hint');
         if (btnHint) btnHint.addEventListener('click', () => this.showHint());
-        /* 🎥 重置視角(0909 使用者要求)。轉歪了、平移拖走了都靠這顆救回來
-           —— 手機上兩指一撥很容易把棋盤推出畫面,沒有這顆就只能重新載入。 */
-        const btnCamera = document.getElementById('btn-camera');
-        if (btnCamera) btnCamera.addEventListener('click', () => this.renderer.resetCamera());
+        /* 🎥 重置視角(0909)2026-09-20 起併進「🎥 視角」工具列(js/view-kit.js,renderer.mountViewKit 掛在 #view-kit-slot),
+           #btn-camera 已拆掉;轉歪了、平移拖走了按工具列裡的 🎯 重置視角。 */
         document.getElementById('btn-back-to-main').addEventListener('click', () => this.showMainMenu());
 
         /* 🗂 左上角 HUD 可收起 + ← 返回 + ✕ 離開全螢幕

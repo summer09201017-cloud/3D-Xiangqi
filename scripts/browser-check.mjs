@@ -70,6 +70,31 @@ await page.waitForTimeout(400);
 const h2 = await page.evaluate(() => JSON.stringify(window.app._hintCache.move));
 ok(h2 === h1.move, "同一個局面按兩次 ⇒ 同一手(不跳針)", h1.move + " vs " + h2);
 
+/* 🎥 視角工具列(2026-09-20 六款 3D 棋類統一):三段預設 + 兩條滑桿 + 換邊 + 重置都要真的在畫面上、真的按得到。
+   ★ 用真點擊(不是 evaluate 呼叫 kit.flip()):鈕被蓋住/收在 details 裡按不到這種病才抓得到。 */
+await page.evaluate(() => { const f = document.getElementById("view-kit-fold"); if (f) f.open = true; });
+ok(await page.locator("[data-vk-view]").count() === 3, "🎥 視角工具列有三顆預設鈕(斜俯視/正俯視/對局視角)");
+const readVk = () => page.evaluate(() => ({
+  yaw: document.querySelector('[data-vk-range="yaw"]').value,
+  pitch: document.querySelector('[data-vk-range="pitch"]').value,
+  flatPressed: document.querySelector('[data-vk-view="flat"]').getAttribute("aria-pressed"),
+}));
+const vk0 = await readVk();
+ok(vk0.yaw === "0" && Math.abs(Number(vk0.pitch) - 56) <= 2, "開場:水平旋轉 0°、俯視角度 ≈ 56°(INITIAL_CAM 的 atan(90/60))", JSON.stringify(vk0));
+await page.click("[data-vk-flip]");
+await page.waitForTimeout(700);
+const vk1 = await readVk();
+ok(vk1.yaw === "180", "按 🔃 換邊 ⇒ 水平旋轉滑桿變 180°", JSON.stringify(vk1));
+await page.click('[data-vk-view="flat"]');
+await page.waitForTimeout(700);
+const vk2 = await readVk();
+ok(vk2.pitch === "88" && vk2.flatPressed === "true", "按「正俯視」⇒ 俯視角度 88°、那顆鈕亮起", JSON.stringify(vk2));
+await page.click("[data-vk-reset]");
+await page.waitForTimeout(400);
+const vk3 = await readVk();
+ok(vk3.yaw === "0" && Math.abs(Number(vk3.pitch) - 56) <= 2, "按 🎯 重置視角 ⇒ 回到 0° / ≈56°", JSON.stringify(vk3));
+ok(await page.locator("#btn-camera").count() === 0, "舊的 #btn-camera 已拆掉(重置併進工具列)");
+
 /* 紅方照 💡 提示走(與真手指同一條 handleSquareClick 管線),黑方由遊戲自己回。
    ★★ 2026-09-08 改用「提示」而不是 calculateBestMove(red,'hard'),兩個理由:
      ① 舊寫法**本來就會隨機紅**:hard 檔有 tieRandom(同分的手裡隨機挑),

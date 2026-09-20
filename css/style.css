@@ -184,6 +184,22 @@ body.immersive #game-info #btn-exit-fs { display: inline-flex; }
     min-height: 40px;                     /* 觸控目標還是要 ≥40px */
 }
 
+/* 🎥 視角工具列(2026-09-20,六款 3D 棋類統一;UI 與樣式主體在 js/view-kit.js 內嵌,這裡只管它塞進 HUD 卡的樣子)
+   ⚠ 要蓋掉全域 button 的 display:block / width:100% / margin 與 #game-info button 的 margin-top:15px(id 選擇器贏過 .vk-btn)。 */
+#game-info .vk-fold { margin-top: 8px; }
+#game-info .vk-fold > summary { cursor: pointer; font-size: 13px; opacity: .9; padding: 4px 0; list-style: none; display: flex; align-items: center; gap: 6px; min-height: 28px; }
+#game-info .vk-fold > summary::-webkit-details-marker { display: none; }
+#game-info .vk-fold > summary::before { content: '▸'; opacity: .8; }
+#game-info .vk-fold[open] > summary::before { content: '▾'; }
+#game-info .view-kit { margin-top: 6px; --vk-accent: #4CAF50; --vk-bg: #444; --vk-line: #666; }
+#game-info .view-kit button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: auto; margin: 0; padding: 6px 8px; font-size: 13px; min-height: 40px;
+}
+@media (orientation: portrait) and (max-width: 768px) {
+  #game-info .view-kit button { min-height: 44px; font-size: 14px; }
+}
+
 /* 🏷 版本與改版簡歷:預設收合、打開可捲(ver-fold v1(game-must-haves/fold-vertag))
    ★ max-height + overflow 是重點:少了它,「打開」只是把遮擋換個時機
      —— 1000 字以上的簡歷照樣蓋掉選單(撞球 0907 的原病)。 */
@@ -225,6 +241,9 @@ body.immersive #game-info #btn-exit-fs { display: inline-flex; }
   #game-info #game-status { font-size: .9rem; }
   #game-info #daily-info { font-size: 12.5px !important; }
   /* 鈕排三欄、拇指構得到(直向時螢幕窄,一列排不下七顆;橫向的 flex-wrap 在這裡會變成兩排半) */
+  /* 0920:#game-info 是 align-items:flex-start 的直向 flex ⇒ #hud-body 只有內容那麼寬(鈕排與視角工具列都縮成 ~240px、右邊一大塊空白);
+     直向卡片本來就是整寬的,讓 #hud-body 撐滿,三欄鈕與工具列的滑桿才會用到整個寬度。橫向小卡不動。 */
+  #game-info #hud-body { align-self: stretch; }
   #game-info .btn-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   #game-info .btn-row button { width: 100%; min-height: 44px; font-size: 14px; padding: 6px 4px; }
   #game-info .btn-row button.hidden { display: none !important; }

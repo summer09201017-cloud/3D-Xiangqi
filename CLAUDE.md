@@ -2,6 +2,15 @@
 
 ## 現況(**2026-09-14,HFP 機**)
 
+- 🎥 **視角工具列統一(0920,使用者拍板「六款 3D 棋類長一樣:預設三段 + 滑桿微調 + 換邊 + 重置」;SW v31、verTag v26)**:
+  `js/view-kit.js` = 艦隊共用複本(來源 `hfpc-claude-skills/plugins/hfpc-skills/skills/board3d-kit/assets/view-kit.js`,**別在站內改它**,要改回 kit 改再複製過來)。
+  HUD 卡 `#hud-body` 的 `.btn-row` 底下多一個 `<details id="view-kit-fold">🎥 視角</details>`,`renderer.mountViewKit()` 在每局 `initScene` 的 `fitCamera()` 之後用模組的 `orbitAdapter` 掛進去;
+  **所有裝置預設收起**(展開後卡高 ~376px:直向在底部吃掉棋盤高度;橫向/桌機是左上浮卡、把左邊兩路棋子整個蓋住——0920 截圖實測),撥開過記在 `localStorage xiangqi3d.viewkit.open`。舊的 `#btn-camera` 拆掉(重置併進工具列)。
+  直向 CSS 補 `#game-info #hud-body { align-self: stretch }`(卡片是 align-items:flex-start 的直向 flex,不撐開的話鈕排/滑桿只有 ~240px 寬、右邊一大塊空白)。
+  ★ 兩個順手修的相機行為:①`camera.up` 改 **+Z**(棋盤法線),OrbitControls 才是「繞棋盤中心水平轉 / 離正上方幾度」——原本預設 +Y 是繞棋盤上下方向那條軸轉、會轉到桌面底下;
+    **一定要在 new OrbitControls 之前設**(它建構時就抓死 up 的四元數);`maxPolarAngle` 改 π/2−0.02(不再鑽到桌底)。開場畫面一個像素不變(INITIAL_CAM 方向落在 YZ 平面)。
+    ②`fitCamera(opts)` 改成**照目前方向只重算距離**,只有 `{reset:true}`(🎯 重置視角)才回 INITIAL_CAM——以前視窗轉向 / HUD 高度一變(直向狀態行多一行也算)就把角度彈回開場,工具列會變成擺著好看。
+  驗收:`npm test` 全綠;`npm run check` 26/0(新增 6 條:三顆預設鈕、開場 0°/≈56°、換邊→180°、正俯視→88° 亮燈、重置→回 0°/56°、#btn-camera 已拆);`npm run check:portrait` 36/0。
 - 🩹 **拔掉「index.html 進 SW 快取名單」地雷(0914 全艦隊,SW v30、verTag v25)**:Cloudflare Pages 把 `/index.html` 308 到 `/`,
   名單裡有 `./index.html` ⇒ install 存到 redirected:true 的回應 ⇒ 導覽拿到它就 ERR_FAILED(3D-Chess 幻影版實錘「裝成 App 打開就無法連上」),
   每次 bump SW 重踩。改動:`ASSETS_TO_CACHE` 拔 `./index.html`、`SHELL` 改 `./`;test/sw.mjs 改守「快取有 `./`、名單/退路/match() 零 index.html」。

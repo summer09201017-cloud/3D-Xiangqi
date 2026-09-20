@@ -139,6 +139,12 @@ class ChessRenderer {
         this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
         /* 開場視角。★ 座標只寫一份(this.INITIAL_CAM)是為了「🎥 重置視角」放回**同一個**位置
            —— 抄第二份的那天兩邊就會漂(俯角 atan(90/60) ≈ 56°,和對局場同一個角度)。 */
+        /* 🎥 2026-09-20 視角工具列統一:up 改成 +Z(棋盤的法線)。OrbitControls 是繞著 camera.up 轉的,
+             原本用預設的 +Y ⇒ 水平拖曳其實是繞著棋盤「上下方向」那條軸轉,會轉到桌面底下看盤底,
+             而且算不出「俯視幾度 / 水平轉幾度」這種人話。改 +Z 之後:theta = 繞棋盤中心水平轉、phi = 離正上方幾度。
+           ★ 一定要在 new OrbitControls 之前設 —— 它建構時就把 up 的四元數抓死了。開場畫面一個像素都不會變
+             (INITIAL_CAM 的方向落在 YZ 平面,+Y 與 +Z 算出來的螢幕上方向相同)。 */
+        this.camera.up.set(0, 0, 1);
         this.camera.position.set(this.INITIAL_CAM.x, this.INITIAL_CAM.y, this.INITIAL_CAM.z);
         this.camera.lookAt(0, 0, 0);
         
@@ -175,12 +181,15 @@ class ChessRenderer {
         this.controls.minAzimuthAngle = -Infinity;
         this.controls.maxAzimuthAngle = Infinity;
         // 放寬垂直視角限制，讓玩家可以從正上方甚至稍微從底部觀看
-        this.controls.maxPolarAngle = Math.PI; // 允許轉到棋盤正下方
-        this.controls.minPolarAngle = 0; // 允許轉到正上方純 2D 視角
+        /* up 是 +Z 之後極角 = 離正上方幾度 ⇒ 只允許 0(正上方純 2D)~ 89°(貼著桌面),
+             不再轉到桌面底下(那個視角看不到任何棋,只會讓人以為壞了)。 */
+        this.controls.maxPolarAngle = Math.PI / 2 - 0.02;
+        this.controls.minPolarAngle = 0;
         
         /* ★ 相機距離照畫布長寬比算(見 fitCamera)。一定要在 controls 之後叫 ——
              fitCamera 會去設 controls.target,順序反過來那一段會靜靜跳過。 */
         this.fitCamera();
+        this.mountViewKit();
 
         /* 5. Lights ⚠⚠ 這三顆的強度是**光預算**,不是隨手調的觀感值(2026-09-09 重算)。
              舊配置 環境 0.6 + 主光 0.8 讓朝上的盤面吃到 0.6 + 0.8×0.808 = **1.246 倍**
@@ -225,7 +234,7 @@ class ChessRenderer {
          用 fov 與 aspect 反推「要退多遠才裝得下」,寬與高各算一次取大的。
        ★ 只改**距離**,不改俯角:方向沿用 INITIAL_CAM 的 (0,-60,90) ⇒ 俯角維持 atan(90/60) ≈ 56°
          (0913 試過 64°,使用者否決,改回)。這個攤平公式的距離不隨俯角變。 */
-    fitCamera() {
+    fitCamera(opts = {}) {
         if (!this.camera) return;
         const { w, h } = this.viewSize();     // 0913:照容器算,直向時容器 = 視窗 − 底部 HUD
         if (!w || !h) return;
@@ -238,12 +247,16 @@ class ChessRenderer {
         const distForW = (boardW / 2) / Math.tan(halfFov) / aspect;
         // 1.06:斜看的投影比正上方矮,但四個角要留一點餘裕(對局場量出來的值)
         const dist = Math.max(distForH, distForW) * 1.02 * 1.06;
-        const len = Math.hypot(this.INITIAL_CAM.y, this.INITIAL_CAM.z) || 1;
-        this.camera.position.set(
-            0,
-            dist * (this.INITIAL_CAM.y / len),
-            dist * (this.INITIAL_CAM.z / len),
-        );
+        /* 🎥 2026-09-20:方向「照目前的」,只重算距離 —— 視窗轉向 / HUD 高度一變(直向的狀態行多一行也算)
+             這支就會被叫,以前每次都把方向拉回 INITIAL_CAM ⇒ 視角工具列或手指剛轉好的角度會被彈回開場。
+             只有 opts.reset(🎯 重置視角)才回 INITIAL_CAM 的方向。 */
+        const dir = new THREE.Vector3(this.INITIAL_CAM.x, this.INITIAL_CAM.y, this.INITIAL_CAM.z);
+        if (!opts.reset && this.controls) {
+            const cur = this.camera.position.clone().sub(this.controls.target);
+            if (cur.lengthSq() > 1e-6) dir.copy(cur);
+        }
+        dir.normalize();
+        this.camera.position.set(dir.x * dist, dir.y * dist, dir.z * dist);
         this.camera.lookAt(0, 0, 0);
         if (this.controls) {
             this.controls.target.set(0, 0, 0);
@@ -256,8 +269,41 @@ class ChessRenderer {
          只搬 camera.position 的話會變成「從新位置看著被拖歪的中心」,比原本更亂。
        ⚠ 也要清掉阻尼還沒吃完的殘量(再 update 一次),不然放手後它會繼續飄一小段。 */
     resetCamera() {
-        this.fitCamera();
+        this.fitCamera({ reset: true });
         if (this.controls) this.controls.update();
+    }
+
+    /* 🎥 視角工具列(2026-09-20 使用者拍板六款 3D 棋類統一:預設三段 + 滑桿微調 + 換邊 + 重置)。
+       UI 與角度數學在 js/view-kit.js(艦隊共用複本,來源 board3d-kit/assets/view-kit.js,**別在這裡改它**);
+       本站只提供 OrbitControls 的 adapter(模組內建 orbitAdapter,會照 camera.up 算 yaw/pitch)。
+       ★ view-kit.js 是 ES module;index.html 用 <script type="module"> 載入後掛到 window.ViewKit 並發 view-kit-ready。
+         這裡若還沒載到就等那個事件。每局 initScene 都重建 controls ⇒ 每局重掛(舊的先 destroy)。
+       ★ yaw 0 = 建 adapter 當下的方位角 ⇒ 一定要在 fitCamera() 之後叫。 */
+    mountViewKit() {
+        const slot = document.getElementById('view-kit-slot');
+        if (!slot || !this.camera || !this.controls) return;
+        const fold = document.getElementById('view-kit-fold');
+        if (fold && !fold.dataset.init) {
+            /* 預設收起(所有裝置):展開後 HUD 卡高 ~376px —— 直向時它在底部直接吃掉棋盤高度,
+               橫向/桌機它是左上角浮卡、會把左邊兩路棋子整個蓋住(0920 截圖實測 1000×720 與 844×390 都會)。
+               使用者撥開過就記住(localStorage),之後每局都是開著的。 */
+            fold.dataset.init = '1';
+            let saved = null;
+            try { saved = localStorage.getItem('xiangqi3d.viewkit.open'); } catch (e) { /* 私密模式 */ }
+            fold.open = saved === '1';
+            fold.addEventListener('toggle', () => {
+                try { localStorage.setItem('xiangqi3d.viewkit.open', fold.open ? '1' : '0'); } catch (e) { /* 私密模式 */ }
+            });
+        }
+        const doMount = () => {
+            const VK = window.ViewKit;
+            if (!VK || !this.camera || !this.controls) return;
+            if (this.viewKit) { this.viewKit.destroy(); this.viewKit = null; }
+            const adapter = VK.orbitAdapter({ THREE, camera: this.camera, controls: this.controls, reset: () => this.resetCamera() });
+            this.viewKit = VK.mountViewKit(slot, adapter, { title: '' });   // 標題由 <summary>🎥 視角</summary> 扛
+        };
+        if (window.ViewKit) doMount();
+        else window.addEventListener('view-kit-ready', doMount, { once: true });
     }
 
     createBoard() {
