@@ -1,6 +1,28 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
-## 現況(**2026-09-14,HFP 機**)
+## 現況(**2026-09-28,HFP 機**)
+
+- 🐾 **動物對手坐到你對面(0928,HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場;SW v32、verTag v27)**:skill `animal-opponent-kit` 第六個活例
+  (正本 majiang3d、範本 gomoku3d;象棋家族六站同一場接)。對 AI:初級 🐰 / 中級 🐱 / 高級 🐻;📅 每日殘局 🦉 守黑方;玩家對戰玩家不出現。
+  ① `js/animals.js`(引擎)/ `js/voice.js`(人聲 runtime)/ `js/three-shim.js`(全域 THREE → ESM 具名匯出 + 補 CapsuleGeometry)三支與 skill assets
+    **同一份,不在這裡改**(browser-check 🐾 有逐位元對賬);本站接線在 `js/opponent.js`、唸稿在 `js/voicePhrases.js`。
+  ② ★ 本站是 **CDN 全域 THREE r128 + 傳統 script**,動物引擎是 ES module `import 'three'` ⇒ index.html 加一張 **import map**(`three` → `./js/three-shim.js`,
+    必須放在第一個 `<script type="module">` 之前)+ 一段模組橋接掛成 `window.PetKit`(跟 view-kit 同一招);app.js `initPet()` 等 `pet-kit-ready`。舊瀏覽器載不進 ⇒ 沒動物、棋照下。
+  ③ ★ 本站世界是 **Z-up**(棋盤躺 XY、camera.up=+Z),引擎假設 Y-up ⇒ 動物掛在轉 +90°(繞 X)的父群組 `petRoot` 底下;不用引擎的 lookAt(它拿世界座標算、up 是 +Y),
+    `opponent.js` 自己設 `group.rotation.y` 朝盤心。座位永遠在相機對面(每幀量相機方位角,2° 一格重擺;🔃 換邊跟著坐到 -Y),距離 = 矩形盤緣 + 1.25×scale。
+  ④ 大小 **0.215 倍**(半盤 45 ⇒ 7.4;頭直徑 ≈ 兩顆棋子):0.24 倍時頭頂 NDC 剛好 0.97、但貓 / 熊耳尖被切幾 px,讓位已頂到上限救不回 ⇒ 縮一點 + 取景點加 EAR_ROOM 0.55。
+  ⑤ 相機讓位:`renderer.fitCamera` 加 `fitExtra(dir)`(二分法拉遠到取景點入鏡,**上限 1.28 倍**;俯角 ≥76° 不讓);`renderer.floorZ`(=板底 -4)給凳子落地;
+    `renderer.onFrame(dt)` 每幀回呼(順手修了「每局 startGame 再叫 animate() 會疊一條 rAF 鏈」:先 cancel 再排)。桌機實測讓位縮盤 0.76(≥0.75)。
+  ⑥ 反應跟狀態文字同分岔(這站沒音效):牠想棋 think(人聲每三手一次)/ 落子 place / 將你的軍 hop+「將軍!」/ 被你吃子・被你將軍 gasp+「哇」/ 贏 win / 輸 lose(每局一次閂鎖 `_petEnded`);
+    等你太久閒聊(15s 第一句、再 30s 第二句、一回合兩句;任何 pointerdown / keydown 歸零)。
+  ⑦ 人聲照 baked-voice 三件套:`npm run voice`(= `gen-voice.mjs --phrases js/voicePhrases.js --out voice --sw service-worker.js`;skill 的 gen-voice 0928 加了 `--out` / `--sw`
+    給沒有 public/ 的平放站)⇒ `voice/` 32 支 mp3 + manifest,service-worker.js 的 `/* voice:begin */…/* voice:end */` 段照目錄重生;`scripts/stage.mjs` SHIP 加 `voice`。
+  ⑧ UI:難度選單多一組「🐾 對手動物」三段(會說話 / 不出聲 / 關,localStorage `xiangqi3d-pet`);HUD 多一行「對手:🐱 橘貓」;`body.pet-on` 手機橫向把左上 HUD 卡收窄到 42vw 讓臉。
+  ⑨ 驗:browser-check +29(檔案對賬 / 引擎同 skill / 坐對面 / 鐵則遍歷 / 頭在畫面裡 ×3 視口 / 臉沒被 HUD 蓋 / 讓位 ≤25% / figs.log 有 think+place / 姿勢手動推時間 /
+    換邊 / 對局視角 / 三段開關 / pvp 不坐 / 人聲 runtime / 每日 🦉)⇒ **56/0**;npm test 全綠;三視口截圖目視過(貓整隻入鏡、HUD 沒蓋臉)。
+  ⚠ 姿勢一律 `opponent.figs.update(0.4)` 手動推時間(無頭 fps 低、dt 上限 0.05);`opponent.probe()` 一次量頭頂 / 凳子 / 座位(世界 XY)。
+
+## 前一輪現況(**2026-09-14,HFP 機**)
 
 - 🎥 **視角工具列統一(0920,使用者拍板「六款 3D 棋類長一樣:預設三段 + 滑桿微調 + 換邊 + 重置」;SW v31、verTag v26)**:
   `js/view-kit.js` = 艦隊共用複本(來源 `hfpc-claude-skills/plugins/hfpc-skills/skills/board3d-kit/assets/view-kit.js`,**別在站內改它**,要改回 kit 改再複製過來)。
@@ -150,6 +172,9 @@
 - `js/app.js` 接線(選單 / 對局 / 每日 / 提示 / 結算);`js/renderer.js` Three.js(棋盤、棋子、標記、動畫、點擊射線);
   `js/gameLogic.js` 盤面規則;`js/pieces.js` 走法;`js/ai.js` 搜尋引擎(合法走法/將軍/PST/靜態搜尋/迭代加深);`js/puzzles.js` 題庫與取題。
 - `service-worker.js` cache-first;`test/daily.mjs` 題庫驗算;`scripts/browser-check.mjs` 真瀏覽器冒煙。
+- 🐾 `js/animals.js` / `js/voice.js` / `js/three-shim.js` = skill animal-opponent-kit/assets **同一份(不在這裡改;browser-check 逐位元對賬)**;
+  `js/opponent.js` 本站接線(誰坐 / Z-up 父群組 / 坐相機對面 / 讓位取景點 / 閒聊)、`js/voicePhrases.js` 四隻唸稿;`scripts/gen-voice.mjs` 烤 mp3 → `voice/`(npm run voice);
+  `scripts/serve.mjs` 本機伺服器(埠 8795,npm run serve)。
 
 ## 鐵則(務必守)
 

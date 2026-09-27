@@ -37,7 +37,7 @@ const out = path.join(root, ".deploy");
 /* 只有這些會上線。
    ★ 這份清單 = service-worker.js 的 ASSETS_TO_CACHE(本機那幾項),少一個離線就壞。
      新增要上線的檔案時,**兩邊都要補**。 */
-const SHIP = ["index.html", "manifest.json", "service-worker.js", "css", "js", "img"];
+const SHIP = ["index.html", "manifest.json", "service-worker.js", "css", "js", "img", "voice"];   // voice/ = 🐾 動物人聲 mp3 + manifest(0928)
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });

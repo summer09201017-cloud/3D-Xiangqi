@@ -16,7 +16,7 @@
 //    導覽拿到它瀏覽器直接拒收 ⇒ ERR_FAILED;每次 bump SW 重踩一次。⇒ 名單與 SHELL 一律只認 './',永遠不要再把 index.html 加回名單。
 //    ③ 沒有執行期快取:install 那次沒抓到的檔,之後永遠不會補進快取。
 //       ⇒ 同源 GET 成功就順手存一份,任何一次成功連線之後就真的能離線。
-const CACHE_NAME = '3d-xiangqi-v31';
+const CACHE_NAME = '3d-xiangqi-v32';
 
 // 導覽退路(離線開 App 時拿它當殼層)
 const SHELL = './';
@@ -31,6 +31,46 @@ const ASSETS_TO_CACHE = [
   './js/ai.js',
   './js/puzzles.js',
   './js/view-kit.js',
+  './js/three-shim.js',
+  './js/animals.js',
+  './js/voice.js',
+  './js/opponent.js',
+  './js/voicePhrases.js',
+  /* voice:begin(scripts/gen-voice.mjs 照目錄重生,不手抄) */
+  "./voice/manifest.json",
+  "./voice/bear-chat1.mp3",
+  "./voice/bear-chat2.mp3",
+  "./voice/bear-chat3.mp3",
+  "./voice/bear-check.mp3",
+  "./voice/bear-lose.mp3",
+  "./voice/bear-think.mp3",
+  "./voice/bear-win.mp3",
+  "./voice/bear-wow.mp3",
+  "./voice/cat-chat1.mp3",
+  "./voice/cat-chat2.mp3",
+  "./voice/cat-chat3.mp3",
+  "./voice/cat-check.mp3",
+  "./voice/cat-lose.mp3",
+  "./voice/cat-think.mp3",
+  "./voice/cat-win.mp3",
+  "./voice/cat-wow.mp3",
+  "./voice/owl-chat1.mp3",
+  "./voice/owl-chat2.mp3",
+  "./voice/owl-chat3.mp3",
+  "./voice/owl-check.mp3",
+  "./voice/owl-lose.mp3",
+  "./voice/owl-think.mp3",
+  "./voice/owl-win.mp3",
+  "./voice/owl-wow.mp3",
+  "./voice/rabbit-chat1.mp3",
+  "./voice/rabbit-chat2.mp3",
+  "./voice/rabbit-chat3.mp3",
+  "./voice/rabbit-check.mp3",
+  "./voice/rabbit-lose.mp3",
+  "./voice/rabbit-think.mp3",
+  "./voice/rabbit-win.mp3",
+  "./voice/rabbit-wow.mp3",
+  /* voice:end */
   './img/icon-192.png',
   './img/icon-512.png',
   './manifest.json',

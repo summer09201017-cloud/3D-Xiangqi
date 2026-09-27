@@ -263,3 +263,23 @@ body.immersive #game-info #btn-exit-fs { display: inline-flex; }
   #main-menu .ver-fold { margin-top: 4px; }
   #main-menu .ver-fold > summary { padding: 2px; }
 }
+
+/* ══════════ 🐾 動物對手(2026-09-28,skill animal-opponent-kit)══════════
+   難度選單多一組三段(會說話 / 不出聲 / 關);HUD 多一行「對手:🐱 橘貓」。
+   ⚠ 全域 button 是 display:block / width:100% / margin:10px 0 ⇒ 三顆要明確蓋掉才排得成一列。 */
+#pet-row { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid #555; border-radius: 10px; background: rgba(255,255,255,.05); text-align: left; }
+#pet-row .pet-label { font-size: .95rem; margin-bottom: 8px; color: #ffd700; }
+#pet-row .pet-opts { display: flex; gap: 6px; }
+#pet-row .pet-opt {
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 1 1 0; width: auto; margin: 0; padding: 8px 6px;
+    font-size: 14px; min-height: 44px; line-height: 1.2;
+}
+#pet-row .pet-opt[aria-pressed="true"] { background: #2e7d32; border-color: #66bb6a; }
+#pet-row .pet-note { font-size: 12px; opacity: .75; margin: 8px 0 0; line-height: 1.5; }
+#game-info #pet-line { font-size: .85rem; margin-bottom: 4px; opacity: .95; }
+/* 牠坐在相機對面 = 畫面正上方;桌機 / 橫向的 HUD 卡在左上角、寬度最多 380px,量過(browser-check 🐾)不會蓋到臉。
+   手機橫向(844 寬)卡片右緣 388、牠的臉中心 422 ⇒ 卡片再窄一點讓開(只在牠坐著時) */
+@media (orientation: landscape) and (max-height: 500px) {
+  body.pet-on #game-info { max-width: min(42vw, 380px); }
+}

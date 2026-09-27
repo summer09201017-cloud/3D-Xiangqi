@@ -1,9 +1,26 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷(全艦隊六棋類站同修;SW v30 / verTag v25)
+更新:2026-09-28(HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場)🐾 動物對手坐到你對面(SW v32 / verTag v27;skill animal-opponent-kit 第六個活例)
+// 原 更新:2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷(全艦隊六棋類站同修;SW v30 / verTag v25)
 // 原 更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)↩️ 俯角改回 56.3°(64° 使用者否決;SW v29 / verTag v24)+ 🗂 橫式主選單兩欄不用捲(v23)+ 🔓 manifest 解鎖橫式(v22)+ 📱 直向獨立版面(v21)
 // 原 更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-28(HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場)🐾 動物對手坐到你對面 ✅(SW v32 / verTag v27)★★★★★
+  由來:0927 使用者看了 3D 麻將的三隻動物說「超級可愛」⇒ 固化 skill animal-opponent-kit 並掃到 gomoku3d / joshua-go3d / carrom3d / crokinole3d;
+    象棋家族源碼當時不在 HFP 機,本場從 GitHub 抓最新(Z:\ 那五份是初版快照,別用)接上。本站是六站裡第一個做的(範式站),其餘五站照抄。
+  改動(細節見 CLAUDE.md 現況 0928 段):
+    · 新檔 js/animals.js、js/voice.js、js/three-shim.js(= skill assets 同一份)、js/opponent.js(本站接線)、js/voicePhrases.js(4 隻 × 8 句)、
+      scripts/gen-voice.mjs(skill 同一份,0928 加 --out / --sw)、scripts/serve.mjs、voice/(32 mp3 + manifest)。
+    · index.html:import map(three → ./js/three-shim.js,放在第一個 module script 之前)+ PetKit 橋接 + 難度選單「🐾 對手動物」三段 + HUD「對手:」一行 + verTag v27。
+    · js/renderer.js:floorZ getter、fitCamera 的 fitExtra(dir) 二分法讓位(上限 1.28)、animate() 先 cancel 舊 rAF + onFrame(dt) 回呼。
+    · js/app.js:initPet()(等 pet-kit-ready 橋接)、startGame 重掛 + 坐、玩家 / AI 走子後 _petAfterPlayerMove / _petAfterAiMove、makeAIMove 前 think()、
+      checkGameState 的 win / lose 閂鎖、updateUIInfo 的 pet-line + body.pet-on。
+    · service-worker.js v32(+5 支 js + voice 段 33 項)、scripts/stage.mjs SHIP +voice、css 加 pet-row / pet-line / 橫向讓臉、package.json +serve +voice。
+  ★ 三條踩到:(a) 引擎 Y-up vs 本站 Z-up ⇒ 父群組轉 90°,而且不能用引擎的 lookAt(世界座標 + up=+Y)要自己設 rotation.y;
+    (b) 取景點只收「頭頂」二分法會把頭頂剛好貼邊、貓 / 熊耳尖被切 ⇒ EAR_ROOM 0.55 + 動物縮到 0.215 倍;
+    (c) bash heredoc 裡放 python 補丁被引號吃掉(第二次了)⇒ 補丁一律寫成 .py 檔再跑。
+  驗:npm test 全綠(daily / hint / sw 9 / manifest 4);browser-check 56/0(🐾 段 +29);三視口截圖目視。線上:見下一段(部署後補)。
 
 ★★★★★ 2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷 ✅(SW v30 / verTag v25)★★★★★
   由來:3D-Chess 幻影版實機「裝成 App 打開就無法連上 / ERR_FAILED」。病根:Cloudflare Pages 把 /index.html 308 到 /,

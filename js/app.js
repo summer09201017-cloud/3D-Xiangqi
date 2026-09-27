@@ -10,6 +10,7 @@ class App {
         this.aiDifficulty = 'easy'; // 'easy', 'medium', 'hard'
         
         this.initUI();
+        this.initPet();
     }
     
     initUI() {
@@ -113,6 +114,59 @@ class App {
         if (/[?&]daily(?:=|&|$)/.test(location.search)) setTimeout(() => this.startGame('daily'), 0);
     }
 
+    /* ═══ 🐾 動物對手(2026-09-28,skill animal-opponent-kit 第六個活例;正本 majiang3d、範本 gomoku3d)═══
+       引擎 js/animals.js、人聲 js/voice.js 是 ES module,本站接線 js/opponent.js;這支是傳統 script ⇒ 經 window.PetKit 橋接
+       (index.html 底下那段,跟 view-kit 同一招);橋還沒好就等 pet-kit-ready。舊瀏覽器載不進 import map ⇒ 沒有動物,棋照下。
+       反應跟狀態文字同分岔(這站沒有音效):牠想棋 think / 走子 place / 將你的軍 hop+「將軍」/ 被吃子・被將軍 gasp+「哇」/ 贏 win / 輸 lose;
+       等你太久閒聊(opponent.update 計時)。純觀感:不進 raycast、不進 AI、不影響棋力。 */
+    initPet() {
+        this.opponent = null; this.voice = null; this._focus = null; this._petEnded = false;
+        this._reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        const build = () => {
+            const PK = window.PetKit;
+            if (!PK || this.opponent) return;
+            this.voice = PK.createVoice({ muted: () => false });   // 這站沒有 🔊 音效開關 ⇒ 只看 🐾 三段
+            this.opponent = new PK.Opponent(this.renderer, this.voice);
+            const opts = document.querySelectorAll('#pet-row .pet-opt');
+            const paint = () => opts.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pet === this.opponent.mode)));
+            opts.forEach((b) => b.addEventListener('click', () => { this.opponent.setMode(b.dataset.pet); paint(); this.updateUIInfo(); }));
+            paint();
+            /* 每幀:牠的 idle / 反應 / 看著最後動的那顆子;waiting = 輪到你、牠在等(閒聊計時只在這時走) */
+            this.renderer.onFrame = (dt) => {
+                const waiting = !!this.gameMode && this.gameMode !== 'pvp' && !this.gameLogic.isGameOver && this.gameLogic.currentPlayer === 'red';
+                this.opponent.update(dt, { focus: this._focus, waiting, reduced: this._reduced });
+            };
+            this.renderer.container.addEventListener('pointerdown', () => this.opponent.noteInput());
+            document.addEventListener('keydown', () => this.opponent.noteInput());
+            /* 橋接比開局晚到(?daily 深連結 setTimeout 0 就開局)⇒ 補坐 */
+            if (this.gameMode && this.renderer.scene) {
+                this.opponent.attach(this.renderer.scene);
+                this.opponent.seat(PK.animalFor(this.gameMode, this.aiDifficulty));
+                this.updateUIInfo();
+            }
+        };
+        if (window.PetKit) build(); else window.addEventListener('pet-kit-ready', build, { once: true });
+    }
+    _focusOn(row, col) {
+        const p = this.renderer.getGridPosition(row, col);
+        this._focus = new THREE.Vector3(p.x, p.y, this.renderer.PIECE_HEIGHT);
+    }
+    /** 你走完一手:吃了牠的子、或將了牠的軍 ⇒ 牠「哇」一聲 */
+    _petAfterPlayerMove(row, col, captured) {
+        if (!this.opponent || !this.opponent.kind) return;
+        this._focusOn(row, col);
+        if (this.gameLogic.isGameOver) return;
+        if (captured || this.gameLogic.isInCheck('black')) this.opponent.react('gasp', 'wow');
+    }
+    /** 牠走完一手:將你的軍 ⇒ 跳起來喊「將軍」;不然只是放子的手勢 */
+    _petAfterAiMove(row, col, captured) {
+        if (!this.opponent || !this.opponent.kind) return;
+        this._focusOn(row, col);
+        if (this.gameLogic.isGameOver) return;
+        if (this.gameLogic.isInCheck('red')) this.opponent.react('hop', 'check');
+        else this.opponent.react('place', null);
+    }
+
     /* 📅 每日殘局的本機戰績:{ "YYYY-MM-DD": { solved: { 題id: 那題最少步 } } }。
        一天一組多題 ⇒ **每題分開記**;零上傳、全包 try/catch、只留 60 天。
        ⚠ 舊格式(單題版是 `日期: 步數`)沒有 solved ⇒ 視為未解、可重解(寬鬆遷移,不炸)。 */
@@ -200,6 +254,12 @@ class App {
             this.gameLogic.initGame();
         }
         this.renderer.initScene(this.gameLogic.getBoardState());
+        /* 🐾 每局的 scene 是新的 ⇒ 動物重掛;誰坐由模式 / 難度決定(pvp 不坐、每日 = 🦉) */
+        this._petEnded = false; this._focus = null;
+        if (this.opponent) {
+            this.opponent.attach(this.renderer.scene);
+            this.opponent.seat(window.PetKit.animalFor(mode, this.aiDifficulty));
+        }
         
         // Link renderer events to game logic
         this.renderer.onPieceClick = (row, col) => this.handleSquareClick(row, col);
@@ -235,11 +295,13 @@ class App {
                 this.renderer.clearHighlights();
             } else if (action.type === 'move') {
                 this.renderer.clearHighlights();
+                const victim = this.gameLogic.board[action.toRow][action.toCol];   // 🐾 吃子了嗎(要在 executeMove 之前看)
                 this.gameLogic.executeMove(action.fromRow, action.fromCol, action.toRow, action.toCol);
                 if (this.gameMode === 'daily') this.redMoves++;   // 📅 記「今天用了幾步」(只數紅方)
                 this.renderer.movePiece(action.fromRow, action.fromCol, action.toRow, action.toCol, () => {
                     this.renderer.updateBoardState(this.gameLogic.getBoardState());
                     this.checkGameState();
+                    this._petAfterPlayerMove(action.toRow, action.toCol, !!victim);
 
                     if (!this.gameLogic.isGameOver && (this.gameMode === 'pvai' || this.gameMode === 'daily') && this.gameLogic.currentPlayer === 'black') {
                         this.makeAIMove();
@@ -252,18 +314,21 @@ class App {
     
     makeAIMove() {
         document.getElementById('game-status').innerText = 'AI 思考中...';
+        if (this.opponent) this.opponent.think();   // 🐾 手托腮、頭歪、看著盤面(每三手唸一次「讓我想想」)
         
         // 使用 setTimeout 讓 UI 有機會更新 (避免 AI 運算卡死主執行緒)
         setTimeout(() => {
             const move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), this.gameLogic.currentPlayer, this.aiDifficulty);
             if (move) {
                 // 套用 AI 的走法
+                const victim = this.gameLogic.board[move.to.row][move.to.col];   // 🐾
                 this.gameLogic.executeMove(move.from.row, move.from.col, move.to.row, move.to.col);
                 this.renderer.movePiece(move.from.row, move.from.col, move.to.row, move.to.col, () => {
                     this.renderer.updateBoardState(this.gameLogic.getBoardState());
                     document.getElementById('game-status').innerText = '';
                     this.checkGameState();
                     this.updateUIInfo();
+                    this._petAfterAiMove(move.to.row, move.to.col, !!victim);
                 });
             } else {
                 // AI 認輸或無步可走
@@ -378,6 +443,12 @@ class App {
                 this._donePinged = true;
                 try { if (window.__xqPingDone) window.__xqPingDone(); } catch (_) { /* best-effort */ }
             }
+            /* 🐾 牠贏了跳、輸了低頭(每局一次;動畫回呼會讓本函式跑兩次) */
+            if (this.opponent && this.opponent.kind && !this._petEnded) {
+                this._petEnded = true;
+                if (this.gameLogic.winner === 'black') this.opponent.react('win', 'win', 250);
+                else this.opponent.react('lose', 'lose', 250);
+            }
             /* 📅 每日殘局的收場:贏=記步數(當日取最少)+新紀錄;輸=溫柔的「再試一次」
                (同一題重開,btn-restart 走 startGame('daily') 拿到的還是今天這一題)。 */
             if (this.gameMode === 'daily' && this.daily) {
@@ -448,6 +519,14 @@ class App {
             playerSpan.innerText = '黑方';
             playerSpan.className = 'black';
         }
+        /* 🐾 對手是誰就寫誰(帶牠的臉);body.pet-on 給 CSS 讓臉用 */
+        const O = this.opponent;
+        const petOn = !!(O && O.on);
+        const petLine = document.getElementById('pet-line');
+        const petName = document.getElementById('pet-name');
+        if (petLine) petLine.classList.toggle('hidden', !petOn);
+        if (petName) petName.textContent = petOn ? (O.emoji + ' ' + O.name) : '';
+        document.body.classList.toggle('pet-on', petOn);
     }
 }
 

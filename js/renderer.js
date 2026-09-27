@@ -128,6 +128,9 @@ class ChessRenderer {
         return { w, h };
     }
 
+    /* 🐾 動物凳子要落到哪(世界 Z):棋盤底面(板厚 4、盤面在 z=0)。這站沒有桌子,凳腳伸到板底就算「落地」。 */
+    get floorZ() { return -this.BOARD_THICKNESS; }
+
     initScene(initialBoardState) {
         // 1. Scene
         this.scene = new THREE.Scene();
@@ -256,7 +259,26 @@ class ChessRenderer {
             if (cur.lengthSq() > 1e-6) dir.copy(cur);
         }
         dir.normalize();
-        this.camera.position.set(dir.x * dist, dir.y * dist, dir.z * dist);
+        /* 🐾 額外取景點(0928,動物對手;照 gomoku3d board3d.fitCamera 的 fitExtra):站方掛 `renderer.fitExtra = (dir) => [Vector3…]`
+           (例如對手的頭頂),距離用二分法拉遠到這些點都進畫面(邊 0.98 / 0.97)—— 但**上限 1.28 倍**(棋盤最多縮 ~22%):
+           棋盤是主角,對手只是配角;讓不下就讓牠被切一點頭,不讓棋盤變小到點不到。fitExtra 回空陣列 = 跟以前完全一樣。 */
+        let d = dist;
+        const extra = typeof this.fitExtra === 'function' ? this.fitExtra(dir) : null;
+        if (extra && extra.length) {
+            const cam = this.camera;
+            const inside = (dd) => {
+                cam.position.set(dir.x * dd, dir.y * dd, dir.z * dd);
+                cam.lookAt(0, 0, 0);
+                cam.updateMatrixWorld(true);
+                return extra.every((p) => { const v = p.clone().project(cam); return Math.abs(v.x) <= 0.98 && Math.abs(v.y) <= 0.97 && v.z < 1; });
+            };
+            const maxD = dist * 1.28;
+            if (!inside(dist)) {
+                if (!inside(maxD)) d = maxD;
+                else { let lo = dist, hi = maxD; for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (inside(mid)) hi = mid; else lo = mid; } d = hi; }
+            }
+        }
+        this.camera.position.set(dir.x * d, dir.y * d, dir.z * d);
         this.camera.lookAt(0, 0, 0);
         if (this.controls) {
             this.controls.target.set(0, 0, 0);
@@ -764,7 +786,15 @@ class ChessRenderer {
     }
     
     animate(time) {
+        /* ⚠ 每局 startGame 都會叫一次 animate():以前沒 cancel 舊的那條 rAF 鏈 ⇒ 重開幾局就有幾條迴圈在跑(畫面照樣、只是浪費 GPU)。
+           0928 接動物才注意到 —— 兩條迴圈會讓 onFrame 的 dt 疊加、動物動作變兩倍快。先 cancel 再排下一幀,永遠只有一條。 */
+        if (this.animationId) cancelAnimationFrame(this.animationId);
         this.animationId = requestAnimationFrame(this.animate.bind(this));
+        /* 🐾 每幀回呼(app 掛 opponent.update):dt 上限 0.05(切回前景那一幀不要跳一大步) */
+        const now = performance.now();
+        const dt = Math.min(0.05, Math.max(0, (now - (this._lastFrameAt || now)) / 1000));
+        this._lastFrameAt = now;
+        if (typeof this.onFrame === 'function') { try { this.onFrame(dt); } catch (e) { console.warn('onFrame', e); } }
         
         // 處理動畫
         if (this.animatingPieces.length > 0) {

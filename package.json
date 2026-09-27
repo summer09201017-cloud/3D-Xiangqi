@@ -7,12 +7,15 @@
     "test": "node test/daily.mjs && node test/hint.mjs && node test/sw.mjs && node test/manifest.mjs",
     "check": "node scripts/browser-check.mjs",
     "stage": "node scripts/stage.mjs",
-    "check:portrait": "node scripts/check-portrait-layout.mjs"
+    "check:portrait": "node scripts/check-portrait-layout.mjs",
+    "serve": "node scripts/serve.mjs",
+    "voice": "node scripts/gen-voice.mjs --phrases js/voicePhrases.js --out voice --sw service-worker.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "msedge-tts": "^2.0.8",
     "playwright-core": "^1.62.1"
   }
 }
