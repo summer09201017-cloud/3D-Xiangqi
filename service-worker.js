@@ -16,7 +16,7 @@
 //    導覽拿到它瀏覽器直接拒收 ⇒ ERR_FAILED;每次 bump SW 重踩一次。⇒ 名單與 SHELL 一律只認 './',永遠不要再把 index.html 加回名單。
 //    ③ 沒有執行期快取:install 那次沒抓到的檔,之後永遠不會補進快取。
 //       ⇒ 同源 GET 成功就順手存一份,任何一次成功連線之後就真的能離線。
-const CACHE_NAME = '3d-xiangqi-v32';
+const CACHE_NAME = '3d-xiangqi-v33';
 
 // 導覽退路(離線開 App 時拿它當殼層)
 const SHELL = './';
@@ -36,6 +36,7 @@ const ASSETS_TO_CACHE = [
   './js/voice.js',
   './js/opponent.js',
   './js/voicePhrases.js',
+  './js/dice-toss.js',
   /* voice:begin(scripts/gen-voice.mjs 照目錄重生,不手抄) */
   "./voice/manifest.json",
   "./voice/bear-chat1.mp3",

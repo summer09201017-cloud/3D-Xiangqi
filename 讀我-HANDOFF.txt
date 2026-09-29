@@ -1,10 +1,15 @@
 ============================================================
 3D 象棋(3D-Xiangqi)— 交接說明(讀我-HANDOFF.txt)
-更新:2026-09-28(HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場)🐾 動物對手坐到你對面(SW v32 / verTag v27;skill animal-opponent-kit 第六個活例)
+更新:2026-09-29(HFP 機・Opus 5.5・0929-骰2骰3-家裡 場)🎲 執子 + 擲骰 / 擲硬幣決定先後(SW v33 / verTag v28;大表骰2)
+// 原 更新:2026-09-28(HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場)🐾 動物對手坐到你對面(SW v32 / verTag v27;skill animal-opponent-kit 第六個活例)
 // 原 更新:2026-09-14(HFP 機・Fable 5.1)🩹 拔掉「index.html 進 SW 快取名單」地雷(全艦隊六棋類站同修;SW v30 / verTag v25)
 // 原 更新:2026-09-13(HFP 機・Fable 5.1・0913-take-over 場)↩️ 俯角改回 56.3°(64° 使用者否決;SW v29 / verTag v24)+ 🗂 橫式主選單兩欄不用捲(v23)+ 🔓 manifest 解鎖橫式(v22)+ 📱 直向獨立版面(v21)
 // 原 更新:2026-09-10(agape250 機・Sonnet 5)🖐 手機旋轉靈敏度第二輪 0.4→0.2(SW v25 / verTag v20,線上驗過)
 ============================================================
+
+★★★★★ 2026-09-29(HFP 機・Opus 5.5・0929-骰2骰3-家裡 場)🎲 執子 + 擲骰 / 擲硬幣決定先後 ✅(SW v33 / verTag v28)★★★★★
+  由來:大表「🎲 擲骰佇列」骰2。★ 大表寫「已有選邊 = S」不成立 —— 本站玩家寫死執紅 ⇒ 先做「可執黑、電腦執紅先走、鏡頭與棋字轉到黑方」再接 skill dice-coin-toss 浮層。
+  改動與驗收細節見 CLAUDE.md 現況 0929 段。npm test 全綠、browser-check 67/0(兩跑)、portrait 36/0、menu-overflow 3/0。線上:部署後同一支 browser-check CHECK_URL=線上。
 
 ★★★★★ 2026-09-28(HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場)🐾 動物對手坐到你對面 ✅(SW v32 / verTag v27)★★★★★
   由來:0927 使用者看了 3D 麻將的三隻動物說「超級可愛」⇒ 固化 skill animal-opponent-kit 並掃到 gomoku3d / joshua-go3d / carrom3d / crokinole3d;

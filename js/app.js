@@ -8,7 +8,12 @@ class App {
         
         this.gameMode = null; // 'pvp' or 'pvai'
         this.aiDifficulty = 'easy'; // 'easy', 'medium', 'hard'
-        
+        /* 🎲 執子(0929):sidePick = 選單上選的('red'|'black'|'dice'|'coin');humanSide = 這一局真的執哪色。
+           ★ 'dice' / 'coin' 永遠不流進棋局 —— startGame 先解成真顏色。每日殘局 / 兩人同機一律 'red'(紅在近端)。 */
+        this.sidePick = 'red';
+        this.humanSide = 'red';
+        this._gen = 0;   // 每局 +1:電腦那手 setTimeout 回來時局已經換了 ⇒ 丟掉(不然會在新局替你走一手)
+
         this.initUI();
         this.initPet();
     }
@@ -27,6 +32,11 @@ class App {
             this.uiAiMenu.classList.remove('hidden');
         });
         
+        const sideOpts = document.querySelectorAll('#side-row .side-opt');
+        sideOpts.forEach((b) => b.addEventListener('click', () => {
+            this.sidePick = b.dataset.side;
+            sideOpts.forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+        }));
         document.getElementById('btn-ai-easy').addEventListener('click', () => this.startGame('pvai', 'easy'));
         document.getElementById('btn-ai-medium').addEventListener('click', () => this.startGame('pvai', 'medium'));
         document.getElementById('btn-ai-hard').addEventListener('click', () => this.startGame('pvai', 'hard'));
@@ -133,7 +143,7 @@ class App {
             paint();
             /* 每幀:牠的 idle / 反應 / 看著最後動的那顆子;waiting = 輪到你、牠在等(閒聊計時只在這時走) */
             this.renderer.onFrame = (dt) => {
-                const waiting = !!this.gameMode && this.gameMode !== 'pvp' && !this.gameLogic.isGameOver && this.gameLogic.currentPlayer === 'red';
+                const waiting = !!this.gameMode && this.gameMode !== 'pvp' && !this.gameLogic.isGameOver && this.gameLogic.currentPlayer === this.humanSide;
                 this.opponent.update(dt, { focus: this._focus, waiting, reduced: this._reduced });
             };
             this.renderer.container.addEventListener('pointerdown', () => this.opponent.noteInput());
@@ -156,14 +166,14 @@ class App {
         if (!this.opponent || !this.opponent.kind) return;
         this._focusOn(row, col);
         if (this.gameLogic.isGameOver) return;
-        if (captured || this.gameLogic.isInCheck('black')) this.opponent.react('gasp', 'wow');
+        if (captured || this.gameLogic.isInCheck(this.aiSide())) this.opponent.react('gasp', 'wow');
     }
     /** 牠走完一手:將你的軍 ⇒ 跳起來喊「將軍」;不然只是放子的手勢 */
     _petAfterAiMove(row, col, captured) {
         if (!this.opponent || !this.opponent.kind) return;
         this._focusOn(row, col);
         if (this.gameLogic.isGameOver) return;
-        if (this.gameLogic.isInCheck('red')) this.opponent.react('hop', 'check');
+        if (this.gameLogic.isInCheck(this.humanSide)) this.opponent.react('hop', 'check');
         else this.opponent.react('place', null);
     }
 
@@ -225,7 +235,38 @@ class App {
         return -1;
     }
 
-    startGame(mode, difficulty = 'easy', dailyIndex) {
+    /** 電腦執哪色(humanSide 的另一色) */
+    aiSide() { return this.humanSide === 'red' ? 'black' : 'red'; }
+    /** 現在是不是輪到電腦(對 AI / 每日殘局才有電腦) */
+    isAiTurn() {
+        return (this.gameMode === 'pvai' || this.gameMode === 'daily') && this.gameLogic.currentPlayer === this.aiSide();
+    }
+
+    /* 🎲 這一局你執哪色(0929,skill dice-coin-toss)。選了擲骰 / 擲硬幣才開浮層,贏的人執紅(紅先走);
+       ★ 每局都走這支(「再來一局」也重擲);兩人同機 / 每日殘局不擲、一律紅在你這邊。
+       ★ 浮層上的臉用「這一局要坐的那隻」(animalFor(mode, 難度)),不是 this.opponent.kind —— 那是上一局的(gomoku3d 實測印成 🦉)。
+       ⚠ window.DiceToss 載不進來(舊瀏覽器)⇒ 靜默亂數,照樣分得出誰先。 */
+    async pickSide(mode, difficulty) {
+        if (mode !== 'pvai') return 'red';
+        const pick = this.sidePick;
+        if (pick === 'red' || pick === 'black') return pick;
+        const DT = window.DiceToss;
+        if (!DT) return Math.random() < 0.5 ? 'red' : 'black';
+        const PK = window.PetKit;
+        const kind = PK ? PK.animalFor(mode, difficulty) : null;
+        const A = kind && PK.ANIMALS ? PK.ANIMALS[kind] : null;
+        const lv = { easy: '初級', medium: '中級', hard: '高級' }[difficulty] || '';
+        const foe = (this.opponent && this.opponent.mode !== 'off' && A) ? `${A.emoji} ${A.name}` : `🤖 電腦(${lv})`;
+        const r = await DT.tossForOrder({
+            players: ['你', foe],
+            mode: pick,
+            firstText: (name) => `${name} 先!執 🔴 紅方`,
+        });
+        return r.first === 0 ? 'red' : 'black';
+    }
+
+    async startGame(mode, difficulty = 'easy', dailyIndex) {
+        const gen = ++this._gen;
         this.gameMode = mode;
         this._donePinged = false;   // 📡 每局只送一次 -done(統計)
         this.aiDifficulty = mode === 'daily' ? 'hard' : difficulty;   // 📅 殘局的黑方守得認真才有題味
@@ -234,6 +275,11 @@ class App {
         this.uiMainMenu.classList.add('hidden');
         this.uiAiMenu.classList.add('hidden');
         this.uiGameOver.classList.add('hidden');
+
+        const side = await this.pickSide(mode, this.aiDifficulty);
+        if (gen !== this._gen) return;   // 擲骰那幾秒又開了別局
+        this.humanSide = side;
+        this.renderer.setSide(side);
         this.uiGameInfo.classList.remove('hidden');
 
         // Initialize Game
@@ -265,9 +311,12 @@ class App {
         this.renderer.onPieceClick = (row, col) => this.handleSquareClick(row, col);
         
         this.updateUIInfo();
-        
+
         // Start render loop
         this.renderer.animate();
+
+        // 🎲 你執黑 ⇒ 電腦執紅先走
+        if (this.isAiTurn()) this.makeAIMove();
     }
     
     showMainMenu() {
@@ -281,7 +330,7 @@ class App {
         if (this.gameLogic.isGameOver) return;
         
         // 如果是 PvAI/每日殘局 且輪到 AI，則忽略點擊
-        if ((this.gameMode === 'pvai' || this.gameMode === 'daily') && this.gameLogic.currentPlayer === 'black') return;
+        if (this.isAiTurn()) return;
 
         const action = this.gameLogic.handleInteraction(row, col);
         
@@ -303,7 +352,7 @@ class App {
                     this.checkGameState();
                     this._petAfterPlayerMove(action.toRow, action.toCol, !!victim);
 
-                    if (!this.gameLogic.isGameOver && (this.gameMode === 'pvai' || this.gameMode === 'daily') && this.gameLogic.currentPlayer === 'black') {
+                    if (!this.gameLogic.isGameOver && this.isAiTurn()) {
                         this.makeAIMove();
                     }
                 });
@@ -317,7 +366,9 @@ class App {
         if (this.opponent) this.opponent.think();   // 🐾 手托腮、頭歪、看著盤面(每三手唸一次「讓我想想」)
         
         // 使用 setTimeout 讓 UI 有機會更新 (避免 AI 運算卡死主執行緒)
+        const gen = this._gen;
         setTimeout(() => {
+            if (gen !== this._gen || this.gameLogic.isGameOver || !this.isAiTurn()) return;   // 🎲 局已經換了(電腦先走時按「重新」最容易撞到)
             const move = this.ai.calculateBestMove(this.gameLogic.getBoardState(), this.gameLogic.currentPlayer, this.aiDifficulty);
             if (move) {
                 // 套用 AI 的走法
@@ -333,7 +384,7 @@ class App {
             } else {
                 // AI 認輸或無步可走
                 this.gameLogic.isGameOver = true;
-                this.gameLogic.winner = 'red'; // 黑方無步可走，紅方勝
+                this.gameLogic.winner = this.humanSide; // 電腦無步可走 ⇒ 你勝
                 this.checkGameState();
             }
         }, 100);
@@ -353,8 +404,7 @@ class App {
     showHint() {
         if (this.gameLogic.isGameOver) return;
         // 輪到 AI 的時候不給提示(那是它在想,不是玩家在想)
-        if ((this.gameMode === 'pvai' || this.gameMode === 'daily')
-            && this.gameLogic.currentPlayer === 'black') return;
+        if (this.isAiTurn()) return;
         if (this._hintBusy) return;
 
         const statusEl = document.getElementById('game-status');
@@ -446,7 +496,7 @@ class App {
             /* 🐾 牠贏了跳、輸了低頭(每局一次;動畫回呼會讓本函式跑兩次) */
             if (this.opponent && this.opponent.kind && !this._petEnded) {
                 this._petEnded = true;
-                if (this.gameLogic.winner === 'black') this.opponent.react('win', 'win', 250);
+                if (this.gameLogic.winner === this.aiSide()) this.opponent.react('win', 'win', 250);
                 else this.opponent.react('lose', 'lose', 250);
             }
             /* 📅 每日殘局的收場:贏=記步數(當日取最少)+新紀錄;輸=溫柔的「再試一次」
@@ -481,7 +531,8 @@ class App {
                 return;
             }
             const winnerName = this.gameLogic.winner === 'red' ? '紅方' : '黑方';
-            document.getElementById('winner-text').innerText = `${winnerName} 獲勝！`;
+            const who = this.gameMode === 'pvai' ? (this.gameLogic.winner === this.humanSide ? '(你)' : '(電腦)') : '';
+            document.getElementById('winner-text').innerText = `${winnerName}${who} 獲勝！`;
             // 一般模式:把每日那兩顆藏回去、把「再來一局」放回來(不然上一場的殘留在框裡)
             const bN = document.getElementById('btn-daily-next');
             const bR = document.getElementById('btn-daily-retry');
@@ -519,6 +570,8 @@ class App {
             playerSpan.innerText = '黑方';
             playerSpan.className = 'black';
         }
+        // 🎲 你執黑也看得出「現在輪到我」(0929)
+        if (this.gameMode === 'pvai') playerSpan.innerText += this.gameLogic.currentPlayer === this.humanSide ? '(你)' : '(電腦)';
         /* 🐾 對手是誰就寫誰(帶牠的臉);body.pet-on 給 CSS 讓臉用 */
         const O = this.opponent;
         const petOn = !!(O && O.on);

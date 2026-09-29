@@ -296,6 +296,61 @@ await page.waitForFunction(() => window.app.gameMode === "daily" && window.app.o
 const owl = await page.evaluate(() => ({ ...window.app.opponent.probe(), name: document.getElementById("pet-name").textContent }));
 ok(owl.kind === "owl" && owl.visible && owl.head.inside && /^🦉/.test(owl.name), `🐾 每日殘局 ⇒ 🦉 貓頭鷹守黑方(${owl.name};頭 ${owl.head.x}, ${owl.head.y})`);
 
+/* 🎲 執子 / 擲骰 / 擲硬幣(0929,skill dice-coin-toss):
+   ⚫ 我執黑 ⇒ 電腦執紅先走第一手、鏡頭坐到 +Y(黑方那邊)、動物坐 -Y(紅方那邊,還是你對面);
+   🎲 / 🪙 ⇒ 判定=畫面:從 matrix3d 反推朝上那面要等於記錄值,開始鈕 ≥44px,贏的人執紅。
+   ★ 等「開始鈕出現」這個狀態,不用 waitForTimeout 等動畫(無頭 fps 低)。 */
+console.log("—— 🎲 擲骰決定先後 ——");
+const sideState = () => page.evaluate(() => ({
+  side: window.app.humanSide, cur: window.app.gameLogic.currentPlayer, camY: window.app.renderer.camera.position.y,
+  petY: window.app.opponent && window.app.opponent.kind ? window.app.opponent.probe().pos.y : null,
+  who: document.getElementById("current-player").textContent,
+}));
+await page.click("#btn-to-menu");
+await page.waitForTimeout(200);
+await page.click("#btn-pvai");
+ok(await page.locator("#side-row .side-opt").count() === 4, "🎲 難度選單多一排執子:紅 / 黑 / 擲骰 / 擲硬幣");
+await page.click('#side-row [data-side="black"]');
+await page.click("#btn-ai-easy");
+// ⚠ 等 HUD 字而不是 currentPlayer:currentPlayer 在 executeMove 就翻了,HUD 要等棋子動畫回呼才更新
+await page.waitForFunction(() => window.app.humanSide === "black" && /黑方\(你\)/.test(document.getElementById("current-player").textContent), null, { timeout: 15000 });
+await page.evaluate(() => window.app.opponent && window.app.opponent.update(0.016));
+const blk = await sideState();
+ok(blk.camY > 0 && (blk.petY === null || blk.petY < 0), `⚫ 我執黑 ⇒ 電腦先走完第一手、輪到你;鏡頭在黑方 y ${blk.camY.toFixed(1)}、動物坐紅方 y ${blk.petY}`);
+ok(/黑方\(你\)/.test(blk.who), `⚫ HUD 寫「黑方(你)」(${blk.who})`);
+await page.screenshot({ path: process.env.SHOT_DIR ? `${process.env.SHOT_DIR}/xq-black-side.png` : "xq-black-side.png" }).catch(() => {});
+for (const kind of ["dice", "coin"]) {
+  await page.click("#btn-to-menu");
+  await page.waitForTimeout(200);
+  await page.click("#btn-pvai");
+  await page.click(`#side-row [data-side="${kind}"]`);
+  await page.click("#btn-ai-easy");
+  await page.waitForSelector(".dt-ov .dt-go:not([hidden])", { timeout: 15000 });
+  const t = await page.evaluate(() => {
+    const els = [...document.querySelectorAll(".dt-die,.dt-coin")];
+    return { shown: els.map((el) => String(window.DiceToss.topFace(el))), rec: els.map((el) => el.dataset.v), msg: document.querySelector(".dt-msg").textContent,
+      seats: [...document.querySelectorAll(".dt-seat")].map((s) => s.textContent.trim().slice(0, 12)),
+      firstSeat: [...document.querySelectorAll(".dt-seat")].findIndex((s) => s.classList.contains("first")), goH: document.querySelector(".dt-go").getBoundingClientRect().height };
+  });
+  ok(t.shown.join() === t.rec.join(), `${kind}:畫面朝上 = 記錄值(畫面 ${t.shown} / 記錄 ${t.rec})`);
+  ok(t.goH >= 44, `${kind}:開始鈕 ≥44px(${t.goH})`);
+  if (kind === "dice") ok(t.seats.some((s) => s.includes("🐰")), `🎲 浮層上是這一局要坐的 🐰(初級),不是上一局的動物(${t.seats.join(" / ")})`);
+  const youFirst = kind === "coin" ? t.shown[0] === "heads" : t.firstSeat === 0;
+  await page.click(".dt-go");
+  await page.waitForFunction(() => !document.querySelector(".dt-ov"), null, { timeout: 5000 });
+  await page.waitForFunction(() => /\(你\)/.test(document.getElementById("current-player").textContent), null, { timeout: 15000 });
+  const s = await sideState();
+  ok(s.side === (youFirst ? "red" : "black") && Math.sign(s.camY) === (s.side === "black" ? 1 : -1), `${kind}:${t.msg} ⇒ 你執 ${s.side}、鏡頭 y ${s.camY.toFixed(1)}`);
+}
+await page.click("#btn-to-menu");
+await page.waitForTimeout(200);
+await page.click("#btn-pvai");
+await page.click('#side-row [data-side="red"]');
+await page.click("#btn-ai-easy");
+await page.waitForFunction(() => window.app.humanSide === "red", null, { timeout: 5000 });
+const red = await sideState();
+ok(red.side === "red" && red.cur === "red" && red.camY < 0, `🔴 我執紅 ⇒ 你先走、鏡頭回紅方(y ${red.camY.toFixed(1)})`);
+
 ok(errors.length === 0, "整場零 pageerror", errors.join(" | "));
 
 await browser.close();

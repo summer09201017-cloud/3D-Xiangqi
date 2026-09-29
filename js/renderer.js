@@ -131,6 +131,14 @@ class ChessRenderer {
     /* 🐾 動物凳子要落到哪(世界 Z):棋盤底面(板厚 4、盤面在 z=0)。這站沒有桌子,凳腳伸到板底就算「落地」。 */
     get floorZ() { return -this.BOARD_THICKNESS; }
 
+    /* 🎲 你坐哪一邊(0929 擲骰決定先後):'red' = 鏡頭在近端 -Y(原本的樣子)/ 'black' = 鏡頭繞到 +Y、棋字轉 180°。
+       ★ 只改 INITIAL_CAM 這一份 ⇒ 開場、🎯 重置視角、fitCamera 全都跟著坐到同一邊;動物坐「相機對面」自動跟著換邊。
+       ⚠ 要在 initScene 之前叫(相機位置與棋子貼圖都在 initScene 裡建)。 */
+    setSide(side) {
+        this.viewSide = side === 'black' ? 'black' : 'red';
+        this.INITIAL_CAM = { x: 0, y: this.viewSide === 'black' ? 60 : -60, z: 90 };
+    }
+
     initScene(initialBoardState) {
         // 1. Scene
         this.scene = new THREE.Scene();
@@ -512,9 +520,10 @@ class ChessRenderer {
            ⚠ translate 要在兩個 rotate **之後**才呼叫 —— 那時 geometry 的本地座標系已經是
              「+Z 朝上」,平移量才會落在厚度方向上;順序反過來會把上層推到旁邊去(而且畫面上
              看起來只是「棋子歪了」,不像 bug)。 */
+        /* 🎲 0929:你執黑時鏡頭坐到黑方那邊(setSide)⇒ 字再轉 180°,字的下=你這邊(圓柱轉 180° 形狀不變,只轉了貼圖) */
         const poseAndLift = (geo, dz) => {
             geo.rotateX(Math.PI / 2);
-            geo.rotateZ(Math.PI / 2);
+            geo.rotateZ(Math.PI / 2 + (this.viewSide === 'black' ? Math.PI : 0));
             geo.translate(0, 0, dz);
             return geo;
         };

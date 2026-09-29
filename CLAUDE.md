@@ -1,6 +1,18 @@
 # CLAUDE.md — 3D 象棋(3D-Xiangqi)
 
-## 現況(**2026-09-28,HFP 機**)
+## 現況(**2026-09-29,HFP 機**)
+
+- 🎲 **執子 + 擲骰 / 擲硬幣決定先後(0929,HFP 機・Opus 5.5・0929-骰2骰3-家裡 場;SW v33、verTag v28)**:skill `dice-coin-toss` 第二個活例(骰2)。
+  ★ 大表原本寫「index.html 已有選邊 = S 級」**不成立**:本站玩家寫死執紅、AI 寫死執黑 ⇒ 先做「可執黑、電腦先走」才接得上浮層(M 級)。
+  ① 難度選單 `#side-row` 四顆:🔴 我執紅 / ⚫ 我執黑 / 🎲 擲骰決定 / 🪙 擲硬幣(贏的人執紅,紅先走)。`app.sidePick` = 選單值,`app.humanSide` = 這局真的顏色(dice/coin 不流進棋局)。
+    `startGame` 改 async:`pickSide()` 每局重擲(重新 / 再來一局也走它);兩人同機 / 每日殘局一律 red。浮層的臉用 `PetKit.animalFor(mode, 難度)`(這局那隻,不是 opponent.kind)。
+  ② `app.aiSide()` / `app.isAiTurn()` 取代所有寫死的 'black' / 'red'(點擊擋、提示擋、電腦接手、無步可走判勝、動物將軍 / 哇 / 贏輸、閒聊 waiting)。
+    `_gen` 局號:電腦那手 setTimeout 回來時局已換 ⇒ 丟掉(電腦先走時按「重新」最容易撞到,不擋會在新局替你走一手)。
+  ③ `renderer.setSide(side)`:只改 `INITIAL_CAM.y`(±60)⇒ 開場 / 🎯 重置 / fitCamera 同一邊;執黑時 `createPieceMesh` 的 rotateZ 多轉 π(字朝你)。動物坐「相機對面」自動換邊,一行沒改。
+  ④ `js/dice-toss.js` = skill 正本同一份(站內不改);index.html 模組橋接 `window.DiceToss`,載不進 ⇒ 靜默亂數。HUD「紅方(你) / 黑方(電腦)」、結算「黑方(你) 獲勝!」。
+  驗:`npm test` +dice 5 項全綠;`npm run check` **67/0**(🎲 段 +11:執黑電腦先走 / 鏡頭 +Y / 動物坐紅方 / HUD / dice & coin 畫面朝上 = 記錄 / 開始鈕 48px / 浮層是 🐰 / 誰先 ⇒ 執色 + 鏡頭 / 回紅方);兩跑都綠;portrait 36/0、menu-overflow 3/0;執黑截圖目視(字朝你、🐰 在紅方那側)。
+
+## 前一輪現況(**2026-09-28,HFP 機**)
 
 - 🐾 **動物對手坐到你對面(0928,HFP 機・Fable 5.1・0928-3D動物對手-象棋家族-家裡 場;SW v32、verTag v27)**:skill `animal-opponent-kit` 第六個活例
   (正本 majiang3d、範本 gomoku3d;象棋家族六站同一場接)。對 AI:初級 🐰 / 中級 🐱 / 高級 🐻;📅 每日殘局 🦉 守黑方;玩家對戰玩家不出現。
