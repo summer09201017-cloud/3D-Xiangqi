@@ -16,7 +16,7 @@
 //    導覽拿到它瀏覽器直接拒收 ⇒ ERR_FAILED;每次 bump SW 重踩一次。⇒ 名單與 SHELL 一律只認 './',永遠不要再把 index.html 加回名單。
 //    ③ 沒有執行期快取:install 那次沒抓到的檔,之後永遠不會補進快取。
 //       ⇒ 同源 GET 成功就順手存一份,任何一次成功連線之後就真的能離線。
-const CACHE_NAME = '3d-xiangqi-v34';
+const CACHE_NAME = '3d-xiangqi-v35';
 
 // 導覽退路(離線開 App 時拿它當殼層)
 const SHELL = './';
@@ -127,11 +127,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // ── 跨站請求(👍 hfpc-feedback 的 /api/feedback、widget.js 之類)一律只走網路、不留副本:
+  //    1013 實錘:cache-first 把「讚數 0」那一包存起來,之後重整永遠 0;CDN 的 three.js 已在預快取清單,不受影響 ──
+  const sameOrigin = new URL(request.url).origin === self.location.origin;
   event.respondWith((async () => {
     const cached = await caches.match(request);
     if (cached) return cached;
     try {
-      return keepCopy(request, await fetch(request));
+      const res = await fetch(request);
+      return sameOrigin ? keepCopy(request, res) : res;
     } catch (_) {
       return Response.error();
     }
